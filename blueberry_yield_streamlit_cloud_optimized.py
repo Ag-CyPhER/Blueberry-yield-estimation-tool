@@ -256,45 +256,65 @@ def load_yolo_model():
 # ============================================================
 # LOAD DINOv3
 # ============================================================
-
+@st.cache_resource
 def load_dino_model():
-    """Load DINOv3 using Hugging Face low-memory loading on CPU."""
-    try:
-        hf_token = st.secrets.get("HF_TOKEN", None)
-    except Exception:
-        hf_token = None
 
-    hf_token = hf_token or os.getenv("HF_TOKEN", None)
-
-    processor_kwargs = {}
-    model_kwargs = {
-        "low_cpu_mem_usage": True
-    }
-
-    if hf_token:
-        processor_kwargs["token"] = hf_token
-        model_kwargs["token"] = hf_token
+    hf_token = os.environ.get("HF_TOKEN")
 
     processor = AutoImageProcessor.from_pretrained(
         DINO_MODEL_NAME,
-        **processor_kwargs
+        token=hf_token
     )
 
-    try:
-        model = AutoModel.from_pretrained(
-            DINO_MODEL_NAME,
-            **model_kwargs
-        )
-    except (TypeError, ImportError):
-        # Fallback for older Transformers/without accelerate.
-        model_kwargs.pop("low_cpu_mem_usage", None)
-        model = AutoModel.from_pretrained(
-            DINO_MODEL_NAME,
-            **model_kwargs
-        )
+    model = AutoModel.from_pretrained(
+        DINO_MODEL_NAME,
+        token=hf_token,
+        low_cpu_mem_usage=True
+    )
 
+    model = model.to("cpu")
     model.eval()
+
     return processor, model
+    
+# def load_dino_model():
+#     """Load DINOv3 using Hugging Face low-memory loading on CPU."""
+#     try:
+#         hf_token = st.secrets.get("HF_TOKEN", None)
+#     except Exception:
+#         hf_token = None
+
+#     hf_token = hf_token or os.getenv("HF_TOKEN", None)
+
+#     processor_kwargs = {}
+#     model_kwargs = {
+#         "low_cpu_mem_usage": True
+#     }
+
+#     if hf_token:
+#         processor_kwargs["token"] = hf_token
+#         model_kwargs["token"] = hf_token
+
+#     processor = AutoImageProcessor.from_pretrained(
+#         DINO_MODEL_NAME,
+#         **processor_kwargs
+#     )
+    
+#     try:
+#         model = AutoModel.from_pretrained(
+#             DINO_MODEL_NAME,
+#             **model_kwargs
+#         )
+#     except (TypeError, ImportError):
+#         # Fallback for older Transformers/without accelerate.
+#         model_kwargs.pop("low_cpu_mem_usage", None)
+#         model = AutoModel.from_pretrained(
+#             DINO_MODEL_NAME,
+#             **model_kwargs
+#         )
+
+#     model.eval()
+#     return processor, model
 
 
 # ============================================================
