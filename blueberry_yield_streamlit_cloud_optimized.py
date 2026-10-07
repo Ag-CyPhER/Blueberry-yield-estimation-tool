@@ -57,10 +57,10 @@ CLASS_NAMES = {
 # ============================================================
 
 MODEL_DIR = "models"
+
 from huggingface_hub import hf_hub_download
 
 DEPTH_REPO_ID = "puranjit13/depthanythingv2_vkitti"
-# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
 DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vits.pth"
 
 YOLO_MODEL_PATH = os.path.join(
@@ -79,7 +79,7 @@ YIELD_MODEL_PATH = os.path.join(
 )
 
 DINO_MODEL_NAME = (
-    "facebook/dinov3-vitb16-pretrain-lvd1689m"
+    "facebook/dinov3-vits16-pretrain-lvd1689m"
 )
 
 
@@ -189,13 +189,6 @@ st.markdown(
 
 def load_depth_model():
     """Load Depth Anything V2 with reduced peak CPU RAM."""
-    # model_configs = {
-    #     "vitl": {
-    #         "encoder": "vitl",
-    #         "features": 256,
-    #         "out_channels": [256, 512, 1024, 1024]
-    #     }
-    # }
     model_configs = {
         "vits": {
             "encoder": "vits",
@@ -211,8 +204,7 @@ def load_depth_model():
 
     model = DepthAnythingV2(
         **model_configs["vits"],
-        # **model_configs["vitl"],
-        max_depth=50
+        max_depth=75
     )
 
     # weights_only avoids unnecessary pickle overhead. assign=True avoids
@@ -259,65 +251,45 @@ def load_yolo_model():
 # ============================================================
 # LOAD DINOv3
 # ============================================================
-@st.cache_resource
-def load_dino_model():
 
-    hf_token = os.environ.get("HF_TOKEN")
+def load_dino_model():
+    """Load DINOv3 using Hugging Face low-memory loading on CPU."""
+    try:
+        hf_token = st.secrets.get("HF_TOKEN", None)
+    except Exception:
+        hf_token = None
+
+    hf_token = hf_token or os.getenv("HF_TOKEN", None)
+
+    processor_kwargs = {}
+    model_kwargs = {
+        "low_cpu_mem_usage": True
+    }
+
+    if hf_token:
+        processor_kwargs["token"] = hf_token
+        model_kwargs["token"] = hf_token
 
     processor = AutoImageProcessor.from_pretrained(
         DINO_MODEL_NAME,
-        token=hf_token
+        **processor_kwargs
     )
 
-    model = AutoModel.from_pretrained(
-        DINO_MODEL_NAME,
-        token=hf_token,
-        low_cpu_mem_usage=True
-    )
+    try:
+        model = AutoModel.from_pretrained(
+            DINO_MODEL_NAME,
+            **model_kwargs
+        )
+    except (TypeError, ImportError):
+        # Fallback for older Transformers/without accelerate.
+        model_kwargs.pop("low_cpu_mem_usage", None)
+        model = AutoModel.from_pretrained(
+            DINO_MODEL_NAME,
+            **model_kwargs
+        )
 
-    model = model.to("cpu")
     model.eval()
-
     return processor, model
-    
-# def load_dino_model():
-#     """Load DINOv3 using Hugging Face low-memory loading on CPU."""
-#     try:
-#         hf_token = st.secrets.get("HF_TOKEN", None)
-#     except Exception:
-#         hf_token = None
-
-#     hf_token = hf_token or os.getenv("HF_TOKEN", None)
-
-#     processor_kwargs = {}
-#     model_kwargs = {
-#         "low_cpu_mem_usage": True
-#     }
-
-#     if hf_token:
-#         processor_kwargs["token"] = hf_token
-#         model_kwargs["token"] = hf_token
-
-#     processor = AutoImageProcessor.from_pretrained(
-#         DINO_MODEL_NAME,
-#         **processor_kwargs
-#     )
-    
-#     try:
-#         model = AutoModel.from_pretrained(
-#             DINO_MODEL_NAME,
-#             **model_kwargs
-#         )
-#     except (TypeError, ImportError):
-#         # Fallback for older Transformers/without accelerate.
-#         model_kwargs.pop("low_cpu_mem_usage", None)
-#         model = AutoModel.from_pretrained(
-#             DINO_MODEL_NAME,
-#             **model_kwargs
-#         )
-
-#     model.eval()
-#     return processor, model
 
 
 # ============================================================
@@ -476,7 +448,11 @@ def generate_foreground(
         ) * stride + overlap
     )
 
-    resized_image = raw_image
+    resized_image = cv2.resize(
+        raw_image,
+        (new_w, new_h),
+        interpolation=cv2.INTER_LINEAR
+    )
 
     n_tiles_h = (
         new_h - overlap
