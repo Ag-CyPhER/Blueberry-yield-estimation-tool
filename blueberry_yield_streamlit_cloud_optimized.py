@@ -78,8 +78,11 @@ YIELD_MODEL_PATH = os.path.join(
     "DINOv3_yield_ElasticNet.pkl"
 )
 
-DINO_MODEL_NAME = (
-    "facebook/dinov3-vitb16-pretrain-lvd1689m"
+DINO_MODEL_NAME = os.path.join(
+    # "facebook/dinov3-vitb16-pretrain-lvd1689m"
+    DEPTH_REPO_ID,
+    "dinov3_vits16_pretrain_lvd1689m-08c60483.pth"
+
 )
 
 
