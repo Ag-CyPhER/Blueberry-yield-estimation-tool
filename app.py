@@ -58,10 +58,15 @@ CLASS_NAMES = {
 
 MODEL_DIR = "models"
 
-DEPTH_CHECKPOINT = os.path.join(
-    MODEL_DIR,
-    "depth_anything_v2_metric_vkitti_vitl.pth"
-)
+# DEPTH_CHECKPOINT = os.path.join(
+#     MODEL_DIR,
+#     "depth_anything_v2_metric_vkitti_vitl.pth"
+# )
+
+from huggingface_hub import hf_hub_download
+
+DEPTH_REPO_ID = "puranjit13/depthanythingv2_vkitti"
+DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
 
 YOLO_MODEL_PATH = os.path.join(
     MODEL_DIR,
@@ -160,6 +165,38 @@ st.markdown(
 # LOAD DEPTH ANYTHING V2
 # ============================================================
 
+# @st.cache_resource
+# def load_depth_model():
+
+#     model_configs = {
+#         "vitl": {
+#             "encoder": "vitl",
+#             "features": 256,
+#             "out_channels": [
+#                 256,
+#                 512,
+#                 1024,
+#                 1024
+#             ]
+#         }
+#     }
+
+#     model = DepthAnythingV2(
+#         **model_configs["vitl"],
+#         max_depth=75
+#     )
+
+#     model.load_state_dict(
+#         torch.load(
+#             DEPTH_CHECKPOINT,
+#             map_location="cpu"
+#         )
+#     )
+
+#     model = model.to(DEVICE).eval()
+
+#     return model
+
 @st.cache_resource
 def load_depth_model():
 
@@ -176,6 +213,12 @@ def load_depth_model():
         }
     }
 
+    # Download checkpoint from Hugging Face
+    depth_checkpoint = hf_hub_download(
+        repo_id=DEPTH_REPO_ID,
+        filename=DEPTH_FILENAME
+    )
+
     model = DepthAnythingV2(
         **model_configs["vitl"],
         max_depth=75
@@ -183,7 +226,7 @@ def load_depth_model():
 
     model.load_state_dict(
         torch.load(
-            DEPTH_CHECKPOINT,
+            depth_checkpoint,
             map_location="cpu"
         )
     )
@@ -191,7 +234,6 @@ def load_depth_model():
     model = model.to(DEVICE).eval()
 
     return model
-
 
 # ============================================================
 # LOAD YOLO
