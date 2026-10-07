@@ -1,14 +1,13 @@
---extra-index-url https://download.pytorch.org/whl/cpu
 streamlit==1.65.0
 torch==2.14.0
 torchvision==0.29.0
-xformers
 opencv-python-headless==5.0.0.93
 transformers==5.17.0
+accelerate
 ultralytics==8.4.164
-numpy
+numpy==2.5.3
 pandas==3.0.6
 scikit-learn==1.9.1
 joblib==1.5.3
-huggingface_hub==1.33.0
-Pillow==11.1.0
+huggingface_hub
+Pillow
