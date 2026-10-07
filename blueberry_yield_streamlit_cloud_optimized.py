@@ -57,16 +57,11 @@ CLASS_NAMES = {
 # ============================================================
 
 MODEL_DIR = "models"
-
-# DEPTH_CHECKPOINT = os.path.join(
-#     MODEL_DIR,
-#     "depth_anything_v2_metric_vkitti_vitl.pth"
-# )
-
 from huggingface_hub import hf_hub_download
 
 DEPTH_REPO_ID = "puranjit13/depthanythingv2_vkitti"
-DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
+# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
+DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vits.pth"
 
 YOLO_MODEL_PATH = os.path.join(
     MODEL_DIR,
@@ -194,11 +189,18 @@ st.markdown(
 
 def load_depth_model():
     """Load Depth Anything V2 with reduced peak CPU RAM."""
+    # model_configs = {
+    #     "vitl": {
+    #         "encoder": "vitl",
+    #         "features": 256,
+    #         "out_channels": [256, 512, 1024, 1024]
+    #     }
+    # }
     model_configs = {
-        "vitl": {
-            "encoder": "vitl",
-            "features": 256,
-            "out_channels": [256, 512, 1024, 1024]
+        "vits": {
+            "encoder": "vits",
+            "features": 64,
+            "out_channels": [48, 96, 192, 384]
         }
     }
 
@@ -208,8 +210,9 @@ def load_depth_model():
     )
 
     model = DepthAnythingV2(
-        **model_configs["vitl"],
-        max_depth=75
+        **model_configs["vits"],
+        # **model_configs["vitl"],
+        max_depth=50
     )
 
     # weights_only avoids unnecessary pickle overhead. assign=True avoids
