@@ -1,9 +1,9 @@
 streamlit
 torch
 torchvision
+opencv-python-headless==5.0.0.93
 transformers
 ultralytics
-opencv-python-headless
 numpy
 pandas
 scikit-learn
