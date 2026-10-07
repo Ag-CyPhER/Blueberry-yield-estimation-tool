@@ -1,14 +1,12 @@
 import os
 import math
 import tempfile
-
 import cv2
 import torch
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
-
 from PIL import Image
 from transformers import AutoImageProcessor, AutoModel
 from depth_anything_v2.dpt import DepthAnythingV2
