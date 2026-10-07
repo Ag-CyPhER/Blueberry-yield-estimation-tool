@@ -79,7 +79,7 @@ YIELD_MODEL_PATH = os.path.join(
 )
 
 DINO_MODEL_NAME = (
-    "facebook/dinov3-vits16-pretrain-lvd1689m"
+    "facebook/dinov3-vitb16-pretrain-lvd1689m"
 )
 
 
@@ -204,7 +204,7 @@ def load_depth_model():
 
     model = DepthAnythingV2(
         **model_configs["vits"],
-        max_depth=75
+        max_depth=100
     )
 
     # weights_only avoids unnecessary pickle overhead. assign=True avoids
