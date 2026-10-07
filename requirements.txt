@@ -1,0 +1,11 @@
+streamlit
+torch
+torchvision
+transformers
+ultralytics
+opencv-python
+numpy
+pandas
+scikit-learn
+joblib
+Pillow
