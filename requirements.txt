@@ -3,7 +3,7 @@ torch
 torchvision
 transformers
 ultralytics
-opencv-python-headless
+opencv-python==5.0.0.93
 numpy
 pandas
 huggingface_hub
