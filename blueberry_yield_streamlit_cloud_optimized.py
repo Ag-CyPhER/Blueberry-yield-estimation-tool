@@ -857,7 +857,7 @@ with st.sidebar:
     st.divider()
 
     st.write("**Depth model to extract Foreground:**")
-    st.write("Depth Anything V2 ViT-L")
+    st.write("Depth Anything V2 ViT-S")
 
     st.write("**Blueberry detector based on maturity:**")
     st.write("YOLO11l")
