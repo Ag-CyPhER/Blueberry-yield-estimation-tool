@@ -1,6 +1,7 @@
 streamlit==1.65.0
 torch==2.14.0
 torchvision==0.29.0
+xformers
 opencv-python-headless==5.0.0.93
 transformers==5.17.0
 accelerate
