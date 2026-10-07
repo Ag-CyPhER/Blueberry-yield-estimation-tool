@@ -6,6 +6,7 @@ ultralytics
 opencv-python
 numpy
 pandas
+huggingface_hub
 scikit-learn
 joblib
 Pillow
