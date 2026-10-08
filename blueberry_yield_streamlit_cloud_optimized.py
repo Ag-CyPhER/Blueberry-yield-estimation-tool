@@ -1042,20 +1042,20 @@ if uploaded_file is not None:
                 annotated_rgb,
                 use_container_width=True,
                 caption=(
-                    ":black[**Detected berries** "
+                    "[**Detected berries** "
                     "(**Green** = green berries, "
                     "**Red** = ripe berries)]"
                 )
             )
-            st.image(
-                annotated_image, 
-                use_container_width=True, 
-                caption=(
-                    ":black[**Detected berries** "
-                    "(**Green** = green berries, "
-                    "**Red** = ripe berries)]"
-                )
-            )
+            # st.image(
+            #     annotated_image, 
+            #     use_container_width=True, 
+            #     caption=(
+            #         ":black[**Detected berries** "
+            #         "(**Green** = green berries, "
+            #         "**Red** = ripe berries)]"
+            #     )
+            # )
 
             col1, col2, col3 = st.columns(3)
 
