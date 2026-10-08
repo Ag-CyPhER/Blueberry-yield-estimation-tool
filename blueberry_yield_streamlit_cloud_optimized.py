@@ -857,18 +857,20 @@ with st.sidebar:
 
     st.divider()
 
-    st.write("**Foreground Extraction using:**")
-    st.write("Depth Anything V2 ViT-S")
+    st.write("**Step 1: Foreground Extraction:**")
+    st.write("Model used: Depth Anything V2 ViT-S")
 
-    st.write("**Blueberry detection model used to detect Blueberries based on Maturity:**")
+    st.write("**Step 2: Blueberry detection based on Maturity:**")
     st.write("YOLO11l")
 
-    st.write("**DINOv3 Vision Foundation model used to estimate Plant Yield Potential:**")
+    st.write("**Step 3: Yield Potential estimation using DINOv3:**")
     st.write("DINOv3 ViT-B/16")
 
-    st.write("**Blueberry Yield Estimation for a plant (in g):**")
+    st.write("**Step 4: Yield Estimation (in g):**")
     st.write("ElasticNet Regressor")
 
+    # st.write("**Summary **")
+    
     st.divider()
 
     st.write(
@@ -1000,7 +1002,7 @@ if uploaded_file is not None:
             st.image(
                 foreground_rgb,
                 use_container_width=True,
-                caption="Generated foreground"
+                caption="Foreground extracted from Original Image"
             )
 
             # =================================================
@@ -1039,6 +1041,15 @@ if uploaded_file is not None:
             st.image(
                 annotated_rgb,
                 use_container_width=True,
+                caption=(
+                    ":black[**Detected berries** "
+                    "(**Green** = green berries, "
+                    "**Red** = ripe berries)]"
+                )
+            )
+            st.image(
+                annotated_image, 
+                use_container_width=True, 
                 caption=(
                     ":black[**Detected berries** "
                     "(**Green** = green berries, "
