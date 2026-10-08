@@ -857,17 +857,17 @@ with st.sidebar:
 
     st.divider()
 
-    st.write("**Depth model to extract Foreground:**")
+    st.write("**Foreground Extraction using:**")
     st.write("Depth Anything V2 ViT-S")
 
-    st.write("**Blueberry detector based on maturity:**")
+    st.write("**Blueberry detection model used to detect Blueberries based on Maturity:**")
     st.write("YOLO11l")
 
-    st.write("**Vision Foundation model for Yield Potential Estimation:**")
+    st.write("**DINOv3 Vision Foundation model used to estimate Plant Yield Potential:**")
     st.write("DINOv3 ViT-B/16")
 
-    st.write("**Yield Estimation model:**")
-    st.write("ElasticNet")
+    st.write("**Blueberry Yield Estimation for a plant (in g):**")
+    st.write("ElasticNet Regressor")
 
     st.divider()
 
