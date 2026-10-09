@@ -816,12 +816,12 @@ def predict_genotype(
 # ============================================================
 with st.sidebar:
 
-    st.header("⚙️ Model Settings")
+    # st.header("⚙️ Model Settings")
 
-    st.write(
-        "AI models are stored on the "
-        "application backend."
-    )
+    # st.write(
+    #     "AI models are stored on the "
+    #     "application backend."
+    # )
 
     st.divider()
     
