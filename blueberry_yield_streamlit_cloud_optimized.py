@@ -112,14 +112,9 @@ except RuntimeError:
 # Keep the large-model workflow sequential to reduce RAM usage.
 CPU_ONLY = True
 
-# Depth inference is the most expensive part of this application.
-# Downscale only the depth-estimation input when an uploaded image
-# is extremely large. The final foreground is returned at the
-# original image resolution.
 DEPTH_MAX_SIDE = 1600
 DEPTH_TILE_SIZE = 512
 DEPTH_OVERLAP = 64
-
 
 # ============================================================
 # CUSTOM CSS
@@ -166,7 +161,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # ============================================================
 # HEADER
 # ============================================================
@@ -197,6 +191,13 @@ def load_depth_model():
             "out_channels": [48, 96, 192, 384]
         }
     }
+    # model_configs = {
+    #     "vitl": {
+    #         "encoder": "vitl",
+    #         "features": 256,
+    #         "out_channels": [256, 512, 1024, 1024]
+    #     }
+    # }
 
     depth_checkpoint = hf_hub_download(
         repo_id=DEPTH_REPO_ID,
@@ -207,6 +208,10 @@ def load_depth_model():
         **model_configs["vits"],
         max_depth=100
     )
+    # model = DepthAnythingV2(
+    #     **model_configs["vits"],
+    #     max_depth=100
+    # )
 
     # weights_only avoids unnecessary pickle overhead. assign=True avoids
     # an extra parameter copy on supported PyTorch versions.
@@ -245,7 +250,6 @@ def load_yolo_model():
             f"YOLO model not found: {YOLO_MODEL_PATH}. "
             "Upload best.pt inside the models/ directory."
         )
-
     return YOLO(YOLO_MODEL_PATH)
 
 
@@ -306,20 +310,16 @@ def load_genotype_model():
 
     return joblib.load(GENOTYPE_MODEL_PATH)
 
-
 # ============================================================
 # LOAD YIELD MODEL
 # ============================================================
-
 def load_yield_model():
 
     if not os.path.exists(YIELD_MODEL_PATH):
         raise FileNotFoundError(
             f"Yield model not found: {YIELD_MODEL_PATH}"
         )
-
     return joblib.load(YIELD_MODEL_PATH)
-
 
 # ============================================================
 # FOREGROUND EXTRACTION
@@ -333,25 +333,18 @@ def extract_foreground(
     percentile=55,
     smooth_kernel=7
 ):
-
     if method == "percentile":
 
         depth_threshold = np.percentile(
             depth_map,
             percentile
         )
-
         mask = depth_map <= depth_threshold
-
     elif method == "absolute":
-
         if threshold is None:
             threshold = np.mean(depth_map) * 0.5
-
         mask = depth_map <= threshold
-
     elif method == "adaptive":
-
         depth_normalized = (
             (depth_map - depth_map.min()) /
             (
@@ -372,11 +365,9 @@ def extract_foreground(
         mask = mask > 0
 
     else:
-
         raise ValueError(
             "Unknown foreground method"
         )
-
     if smooth_kernel > 0:
 
         kernel = cv2.getStructuringElement(
@@ -386,7 +377,6 @@ def extract_foreground(
                 smooth_kernel
             )
         )
-
         mask = cv2.morphologyEx(
             mask.astype(np.uint8),
             cv2.MORPH_CLOSE,
@@ -407,16 +397,13 @@ def extract_foreground(
 
     return foreground
 
-
 # ============================================================
 # GENERATE FOREGROUND
 # ============================================================
-
 def generate_foreground(
     image_path,
     depth_model
 ):
-
     raw_image = cv2.imread(
         image_path
     )
@@ -521,23 +508,19 @@ def generate_foreground(
                     ),
                     dtype=np.uint8
                 )
-
                 tile_padded[
                     :actual_h,
                     :actual_w
                 ] = tile
-
                 with torch.inference_mode():
                     tile_depth = depth_model.infer_image(
                         tile_padded,
                         tile_size
                     )
-
                 tile_depth = tile_depth[
                     :actual_h,
                     :actual_w
                 ]
-
             else:
 
                 with torch.inference_mode():
@@ -614,7 +597,6 @@ def generate_foreground(
             ] += (
                 tile_depth * weight
             )
-
             weight_map[
                 y_start:y_end,
                 x_start:x_end
@@ -631,9 +613,7 @@ def generate_foreground(
                         f"{tile_counter}/{total_tiles} tiles"
                     )
                 )
-
             del tile_depth, weight
-
 
     full_depth_map /= np.maximum(
         weight_map,
@@ -645,7 +625,6 @@ def generate_foreground(
         (orig_w, orig_h),
         interpolation=cv2.INTER_LINEAR
     )
-
     foreground = extract_foreground(
         raw_image,
         full_depth_map,
@@ -654,16 +633,12 @@ def generate_foreground(
         percentile=55,
         smooth_kernel=7
     )
-
     progress.empty()
-
     return foreground
-
 
 # ============================================================
 # YOLO BERRY DETECTION + ANNOTATED IMAGE
 # ============================================================
-
 def predict_berry_count(foreground, model, tile_size=640, conf=0.4):
     """CPU-safe YOLO tiling with only one tile resident at a time."""
     image = foreground
@@ -738,7 +713,6 @@ def predict_berry_count(foreground, model, tile_size=640, conf=0.4):
                         output_image, class_name, (x1, max(y1 - 8, 15)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2
                     )
-
             del results, result, tile
             tile_counter += 1
 
@@ -754,11 +728,9 @@ def predict_berry_count(foreground, model, tile_size=640, conf=0.4):
     total_berries = total_green + total_ripe
     return total_green, total_ripe, total_berries, output_image
 
-
 # ============================================================
 # DINOv3 GENOTYPE PREDICTION
 # ============================================================
-
 def predict_genotype(
     foreground,
     processor,
@@ -790,7 +762,6 @@ def predict_genotype(
         "num_register_tokens",
         4
     )
-
     with torch.inference_mode():
 
         outputs = dino_model(
@@ -806,7 +777,6 @@ def predict_genotype(
             1 + num_register_tokens:,
             :
         ]
-
         embedding = (
             patch_embeddings
             .mean(dim=1)
@@ -841,11 +811,9 @@ def predict_genotype(
         genotype_name
     )
 
-
 # ============================================================
 # SIDEBAR
 # ============================================================
-
 with st.sidebar:
 
     st.header("⚙️ Model Settings")
@@ -856,7 +824,11 @@ with st.sidebar:
     )
 
     st.divider()
-
+    
+    st.write("**Please upload an image for a Blueberry plant and an approximate average berry wt. to get started**")
+    
+    st.write("**The Blueberry Yield Analyzer tool performs the following to estimate Plant Yield**")
+    
     st.write("**Step 1: Foreground Extraction:**")
     st.write("Model used: Depth Anything V2 ViT-S")
 
@@ -880,11 +852,9 @@ with st.sidebar:
         "CPU-optimized configuration for Streamlit Cloud"
     )
 
-
 # ============================================================
 # IMAGE UPLOAD
 # ============================================================
-
 st.header("📷 Upload Blueberry Image")
 
 uploaded_file = st.file_uploader(
@@ -896,11 +866,9 @@ uploaded_file = st.file_uploader(
     ]
 )
 
-
 # ============================================================
 # MAIN APPLICATION
 # ============================================================
-
 if uploaded_file is not None:
 
     # --------------------------------------------------------
@@ -947,7 +915,6 @@ if uploaded_file is not None:
     # ========================================================
     # RUN COMPLETE PIPELINE
     # ========================================================
-
     if run_button:
 
         temp_path = None
@@ -998,7 +965,6 @@ if uploaded_file is not None:
                 foreground,
                 cv2.COLOR_BGR2RGB
             )
-
             st.image(
                 foreground_rgb,
                 use_container_width=True,
@@ -1071,7 +1037,6 @@ if uploaded_file is not None:
             # =================================================
             # 3. GENOTYPE PREDICTION
             # =================================================
-
             st.subheader("4️⃣ Genotype Prediction")
 
             with st.spinner(
@@ -1170,11 +1135,9 @@ if uploaded_file is not None:
             )
 
             st.divider()
-
             # =================================================
             # SUMMARY
             # =================================================
-
             st.subheader("📋 Prediction Summary")
 
             summary = pd.DataFrame({
@@ -1226,7 +1189,6 @@ if uploaded_file is not None:
                     os.remove(temp_path)
                 except OSError:
                     pass
-
 else:
 
     st.info(
