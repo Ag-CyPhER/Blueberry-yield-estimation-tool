@@ -817,18 +817,14 @@ def predict_genotype(
 with st.sidebar:
 
     # st.header("⚙️ Model Settings")
-
     # st.write(
     #     "AI models are stored on the "
     #     "application backend."
     # )
-    
     st.write("**Please upload an image for a Blueberry plant and an approximate average berry wt. to get started**")
     
-    st.write("**The Blueberry Yield Analyzer tool performs the following to estimate Plant Yield**")
-    
+    st.write("The Blueberry Yield Analyzer tool performs the following to estimate Plant Yield")
     st.divider()
-    
     st.write("**Step 1: Foreground Extraction:**")
     st.write("Model used: Depth Anything V2 ViT-S")
 
