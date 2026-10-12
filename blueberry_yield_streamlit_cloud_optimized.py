@@ -625,12 +625,11 @@ def extract_dinov3_embedding(
         )
 
     del image_rgb, pil_image, inputs, outputs
-    del hidden_states, patch_tokens, embedding if False else image_bgr
-
+    del hidden_states, patch_tokens
+    del image_bgr
+    
     gc.collect()
-
     return embedding
-
 
 # =========================================================
 # 13. PREDICT GENOTYPE
