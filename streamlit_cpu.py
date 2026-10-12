@@ -58,8 +58,8 @@ MODEL_DIR = "models"
 from huggingface_hub import hf_hub_download
 
 DEPTH_REPO_ID = "puranjit13/depthanythingv2_vkitti"
-# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vits.pth"
-DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitb.pth"
+DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vits.pth"
+# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitb.pth"
 # DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
 
 YOLO_MODEL_PATH = os.path.join(
@@ -179,20 +179,20 @@ st.markdown(
 # ============================================================
 def load_depth_model():
     """Load Depth Anything V2 with reduced peak CPU RAM."""
-    # model_configs = {
-    #     "vits": {
-    #         "encoder": "vits",
-    #         "features": 64,
-    #         "out_channels": [48, 96, 192, 384]
-    #     }
-    # }
     model_configs = {
-        "vitb": {
-            "encoder": "vitb",
-            "features": 128,
-            "out_channels": [96, 192, 384, 768]
+        "vits": {
+            "encoder": "vits",
+            "features": 64,
+            "out_channels": [48, 96, 192, 384]
         }
     }
+    # model_configs = {
+    #     "vitb": {
+    #         "encoder": "vitb",
+    #         "features": 128,
+    #         "out_channels": [96, 192, 384, 768]
+    #     }
+    # }
     # model_configs = {
     #     "vitl": {
     #         "encoder": "vitl",
@@ -207,8 +207,8 @@ def load_depth_model():
     )
 
     model = DepthAnythingV2(
-        # **model_configs["vits"],
-        **model_configs["vitb"],
+        **model_configs["vits"],
+        # **model_configs["vitb"],
         # **model_configs["vitl"],
         max_depth=100
     )
