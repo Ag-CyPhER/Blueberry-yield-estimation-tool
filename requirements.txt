@@ -11,3 +11,5 @@ scikit-learn==1.9.1
 joblib==1.5.3
 huggingface_hub
 Pillow
+pytest-shutil
+gc-python-utils
