@@ -14,7 +14,6 @@ from transformers import AutoImageProcessor, AutoModel
 from depth_anything_v2.dpt import DepthAnythingV2
 from ultralytics import YOLO
 
-
 # ============================================================
 # PAGE CONFIGURATION
 # ============================================================
@@ -24,7 +23,6 @@ st.set_page_config(
     page_icon="🫐",
     layout="wide"
 )
-
 
 # ============================================================
 # CLASS NAMES
@@ -50,7 +48,6 @@ CLASS_NAMES = {
     17: "Jewel",
     18: "Legacy"
 }
-
 
 # ============================================================
 # MODEL PATHS
@@ -87,7 +84,6 @@ DINO_MODEL_NAME = (
 # ============================================================
 # DEVICE
 # ============================================================
-
 # ============================================================
 # CPU CONFIGURATION FOR STREAMLIT CLOUD
 # ============================================================
@@ -164,7 +160,6 @@ st.markdown(
 # ============================================================
 # HEADER
 # ============================================================
-
 st.markdown(
     '<div class="main-title">🫐 Blueberry Yield Analyzer</div>',
     unsafe_allow_html=True
@@ -177,11 +172,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # ============================================================
 # LOAD DEPTH ANYTHING V2
 # ============================================================
-
 def load_depth_model():
     """Load Depth Anything V2 with reduced peak CPU RAM."""
     model_configs = {
@@ -238,7 +231,6 @@ def load_depth_model():
     model.eval()
     return model
 
-
 # ============================================================
 # LOAD YOLO
 # ============================================================
@@ -252,11 +244,9 @@ def load_yolo_model():
         )
     return YOLO(YOLO_MODEL_PATH)
 
-
 # ============================================================
 # LOAD DINOv3
 # ============================================================
-
 def load_dino_model():
     """Load DINOv3 using Hugging Face low-memory loading on CPU."""
     try:
@@ -296,7 +286,6 @@ def load_dino_model():
     model.eval()
     return processor, model
 
-
 # ============================================================
 # LOAD GENOTYPE CLASSIFIER
 # ============================================================
@@ -324,7 +313,6 @@ def load_yield_model():
 # ============================================================
 # FOREGROUND EXTRACTION
 # ============================================================
-
 def extract_foreground(
     image,
     depth_map,
@@ -522,7 +510,6 @@ def generate_foreground(
                     :actual_w
                 ]
             else:
-
                 with torch.inference_mode():
                     tile_depth = depth_model.infer_image(
                         tile,
@@ -536,7 +523,6 @@ def generate_foreground(
                 ),
                 dtype=np.float32
             )
-
             if overlap > 0:
 
                 if i > 0:
@@ -546,7 +532,6 @@ def generate_foreground(
                         1,
                         overlap
                     )
-
                     weight[
                         :overlap,
                         :
@@ -787,12 +772,10 @@ def predict_genotype(
     # --------------------------------------------------------
     # Classifier prediction
     # --------------------------------------------------------
-
     genotype_id = (
         genotype_model
         .predict(embedding)[0]
     )
-
     genotype_id = int(
         genotype_id
     )
@@ -800,7 +783,6 @@ def predict_genotype(
     # --------------------------------------------------------
     # Convert ID to genotype name
     # --------------------------------------------------------
-
     genotype_name = CLASS_NAMES.get(
         genotype_id,
         f"Unknown class ({genotype_id})"
@@ -1064,13 +1046,11 @@ if uploaded_file is not None:
             gc.collect()
 
             col1, col2 = st.columns(2)
-
             with col1:
                 st.metric(
                     "Predicted Genotype",
                     genotype
                 )
-
             if genotype_id <= 7:
                 yield_text = "Low yield potential"
             elif genotype_id <= 12:
@@ -1156,28 +1136,24 @@ if uploaded_file is not None:
                     f"{predicted_yield:.2f} g"
                 ]
             })
-
             st.dataframe(
                 summary,
                 hide_index=True,
                 use_container_width=True
             )
-
         except Exception as e:
-
             st.error(
                 "An error occurred during analysis."
             )
             st.exception(e)
 
         finally:
-
             # Always release model memory and temporary files.
             depth_model = None
             yolo_model = None
             processor = None
             dino_model = None
-
+            
             gc.collect()
 
             if temp_path is not None:
@@ -1186,7 +1162,6 @@ if uploaded_file is not None:
                 except OSError:
                     pass
 else:
-
     st.info(
         "Upload an original blueberry plant image "
         "to begin the analysis."
