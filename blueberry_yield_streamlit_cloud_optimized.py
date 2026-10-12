@@ -89,8 +89,8 @@ try:
 except RuntimeError:
     pass  # Streamlit reruns the script in the same process.
 
-DEPTH_TILE_SIZE = 512
-DEPTH_OVERLAP = 64
+DEPTH_TILE_SIZE = 1024
+DEPTH_OVERLAP = 128
 
 JPEG_QUALITY = 95
 
@@ -654,9 +654,9 @@ with st.sidebar:
 # ============================================================
 
 def render_results(res):
-    st.subheader("1️⃣ Original Image")
-    st.image(res["original_bytes"], use_container_width=True)
-    st.divider()
+    # st.subheader("1️⃣ Original Image")
+    # st.image(res["original_bytes"], use_container_width=True)
+    # st.divider()
 
     st.subheader("2️⃣ Foreground Extraction")
     st.image(
