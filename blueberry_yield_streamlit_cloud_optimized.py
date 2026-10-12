@@ -192,6 +192,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+st.markdown(
+    '<p style="font-size: 1.1rem; margin-top: 0.5rem;">'
+    'The Blueberry Yield Analyzer tool performs the following to estimate Plant Yield'
+    '</p>',
+    unsafe_allow_html=True
+)
 
 # ============================================================
 # MODEL LOADERS (not cached on purpose, released after use)
@@ -617,10 +623,7 @@ with st.sidebar:
         "**Please upload an image for a Blueberry plant and an "
         "approximate average berry wt. to get started**"
     )
-    st.write(
-        "The Blueberry Yield Analyzer tool performs the following "
-        "to estimate Plant Yield"
-    )
+
     st.divider()
     st.write("**Step 1: Foreground Extraction:**")
     st.write("Model used: Depth Anything V2 ViT-S")
