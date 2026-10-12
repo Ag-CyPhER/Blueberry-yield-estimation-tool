@@ -58,7 +58,9 @@ MODEL_DIR = "models"
 from huggingface_hub import hf_hub_download
 
 DEPTH_REPO_ID = "puranjit13/depthanythingv2_vkitti"
-DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vits.pth"
+# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vits.pth"
+DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitb.pth"
+# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
 
 YOLO_MODEL_PATH = os.path.join(
     MODEL_DIR,
@@ -177,11 +179,18 @@ st.markdown(
 # ============================================================
 def load_depth_model():
     """Load Depth Anything V2 with reduced peak CPU RAM."""
+    # model_configs = {
+    #     "vits": {
+    #         "encoder": "vits",
+    #         "features": 64,
+    #         "out_channels": [48, 96, 192, 384]
+    #     }
+    # }
     model_configs = {
-        "vits": {
-            "encoder": "vits",
-            "features": 64,
-            "out_channels": [48, 96, 192, 384]
+        "vitb": {
+            "encoder": "vitb",
+            "features": 128,
+            "out_channels": [96, 192, 384, 768]
         }
     }
     # model_configs = {
@@ -198,13 +207,11 @@ def load_depth_model():
     )
 
     model = DepthAnythingV2(
-        **model_configs["vits"],
+        # **model_configs["vits"],
+        **model_configs["vitb"],
+        # **model_configs["vitl"],
         max_depth=100
     )
-    # model = DepthAnythingV2(
-    #     **model_configs["vits"],
-    #     max_depth=100
-    # )
 
     # weights_only avoids unnecessary pickle overhead. assign=True avoids
     # an extra parameter copy on supported PyTorch versions.
@@ -808,7 +815,7 @@ with st.sidebar:
     st.write("The Blueberry Yield Analyzer tool performs the following to estimate Plant Yield")
     st.divider()
     st.write("**Step 1: Foreground Extraction:**")
-    st.write("Model used: Depth Anything V2 ViT-S")
+    st.write("Model used: Depth Anything V2 ViT-B")
 
     st.write("**Step 2: Blueberry detection based on Maturity:**")
     st.write("YOLO11l")
