@@ -9,27 +9,15 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
 from PIL import Image
 from transformers import AutoImageProcessor, AutoModel
 from ultralytics import YOLO
-
-# ------------------------------------------------------------------
-# FOREGROUND EXTRACTION IS DISABLED (all related code commented out)
-# ------------------------------------------------------------------
-# from depth_anything_v2.dpt import DepthAnythingV2
-# from huggingface_hub import hf_hub_download
-
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
 
 st.set_page_config(
     page_title="Blueberry Yield Analyzer",
     page_icon="🫐",
     layout="wide"
 )
-
 
 # ============================================================
 # CLASS NAMES
@@ -59,13 +47,7 @@ CLASS_NAMES = {
 # ============================================================
 # MODEL PATHS
 # ============================================================
-
 MODEL_DIR = "models"
-
-# --- Depth model (foreground extraction) - disabled ---
-# DEPTH_REPO_ID = "puranjit13/depthanythingv2_vkitti"
-# DEPTH_FILENAME = "depth_anything_v2_metric_vkitti_vitl.pth"
-
 YOLO_MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
 
 GENOTYPE_MODEL_PATH = os.path.join(
@@ -84,21 +66,17 @@ DINO_MODEL_NAME = "facebook/dinov3-vitb16-pretrain-lvd1689m"
 # Display only - never affects the analysis.
 DISPLAY_MAX_SIDE = 2000
 
-
 # ============================================================
 # DEVICE (CPU only)
 # ============================================================
-
 DEVICE = torch.device("cpu")
 
 # Optional: use all available CPU cores for inference
 torch.set_num_threads(max(1, os.cpu_count() or 1))
 
-
 # ============================================================
 # CUSTOM CSS
 # ============================================================
-
 st.markdown(
     """
     <style>
@@ -146,72 +124,30 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # ============================================================
 # HEADER
 # ============================================================
-
 st.markdown(
     '<div class="main-title">🫐 Blueberry Yield Analyzer</div>',
     unsafe_allow_html=True
 )
-
 st.markdown(
     '<div class="subtitle">'
     'AI-based blueberry genotype, blueberry detection, and yield estimation'
     '</div>',
     unsafe_allow_html=True
 )
-
-
-# ============================================================
-# LOAD DEPTH ANYTHING V2  (DISABLED - foreground extraction)
-# ============================================================
-
-# @st.cache_resource
-# def load_depth_model():
-#
-#     model_configs = {
-#         "vitl": {
-#             "encoder": "vitl",
-#             "features": 256,
-#             "out_channels": [256, 512, 1024, 1024]
-#         }
-#     }
-#
-#     depth_checkpoint = hf_hub_download(
-#         repo_id=DEPTH_REPO_ID,
-#         filename=DEPTH_FILENAME
-#     )
-#
-#     model = DepthAnythingV2(
-#         **model_configs["vitl"],
-#         max_depth=75
-#     )
-#
-#     model.load_state_dict(
-#         torch.load(depth_checkpoint, map_location="cpu")
-#     )
-#
-#     model = model.to(DEVICE).eval()
-#
-#     return model
-
-
 # ============================================================
 # LOAD YOLO
 # ============================================================
-
 @st.cache_resource
 def load_yolo_model():
 
     return YOLO(YOLO_MODEL_PATH)
 
-
 # ============================================================
 # LOAD DINOv3
 # ============================================================
-
 @st.cache_resource
 def load_dino_model():
 
@@ -223,179 +159,25 @@ def load_dino_model():
 
     return processor, model
 
-
 # ============================================================
 # LOAD GENOTYPE CLASSIFIER
 # ============================================================
-
 @st.cache_resource
 def load_genotype_model():
 
     return joblib.load(GENOTYPE_MODEL_PATH)
 
-
 # ============================================================
 # LOAD YIELD MODEL
 # ============================================================
-
 @st.cache_resource
 def load_yield_model():
 
     return joblib.load(YIELD_MODEL_PATH)
-
-
-# ============================================================
-# FOREGROUND EXTRACTION  (DISABLED)
-# ============================================================
-
-# def extract_foreground(
-#     image,
-#     depth_map,
-#     method="adaptive",
-#     threshold=None,
-#     percentile=55,
-#     smooth_kernel=7
-# ):
-#
-#     if method == "percentile":
-#         depth_threshold = np.percentile(depth_map, percentile)
-#         mask = depth_map <= depth_threshold
-#
-#     elif method == "absolute":
-#         if threshold is None:
-#             threshold = np.mean(depth_map) * 0.5
-#         mask = depth_map <= threshold
-#
-#     elif method == "adaptive":
-#         depth_normalized = (
-#             (depth_map - depth_map.min()) /
-#             (depth_map.max() - depth_map.min() + 1e-8) * 255
-#         ).astype(np.uint8)
-#
-#         _, mask = cv2.threshold(
-#             depth_normalized, 0, 255,
-#             cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-#         )
-#         mask = mask > 0
-#
-#     else:
-#         raise ValueError("Unknown foreground method")
-#
-#     if smooth_kernel > 0:
-#         kernel = cv2.getStructuringElement(
-#             cv2.MORPH_ELLIPSE, (smooth_kernel, smooth_kernel)
-#         )
-#         mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
-#         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-#         mask = mask > 0
-#
-#     foreground = image.copy()
-#     foreground[~mask] = 0
-#
-#     return foreground
-
-
-# ============================================================
-# GENERATE FOREGROUND  (DISABLED)
-# ============================================================
-
-# def generate_foreground(image_path, depth_model):
-#
-#     raw_image = cv2.imread(image_path)
-#
-#     if raw_image is None:
-#         raise ValueError("Could not read uploaded image.")
-#
-#     orig_h, orig_w = raw_image.shape[:2]
-#
-#     input_size = 512
-#     overlap = 64
-#     tile_size = input_size
-#     stride = tile_size - overlap
-#
-#     new_h = ((orig_h - overlap + stride - 1) // stride) * stride + overlap
-#     new_w = ((orig_w - overlap + stride - 1) // stride) * stride + overlap
-#
-#     resized_image = cv2.resize(
-#         raw_image, (new_w, new_h), interpolation=cv2.INTER_LINEAR
-#     )
-#
-#     n_tiles_h = (new_h - overlap) // stride
-#     n_tiles_w = (new_w - overlap) // stride
-#
-#     full_depth_map = np.zeros((new_h, new_w), dtype=np.float32)
-#     weight_map = np.zeros((new_h, new_w), dtype=np.float32)
-#
-#     progress = st.progress(0, text="Generating foreground...")
-#     total_tiles = n_tiles_h * n_tiles_w
-#     tile_counter = 0
-#
-#     for i in range(n_tiles_h):
-#         for j in range(n_tiles_w):
-#
-#             y_start = i * stride
-#             y_end = min(y_start + tile_size, new_h)
-#             x_start = j * stride
-#             x_end = min(x_start + tile_size, new_w)
-#
-#             tile = resized_image[y_start:y_end, x_start:x_end]
-#             actual_h = y_end - y_start
-#             actual_w = x_end - x_start
-#
-#             if actual_h < tile_size or actual_w < tile_size:
-#                 tile_padded = np.zeros((tile_size, tile_size, 3), dtype=np.uint8)
-#                 tile_padded[:actual_h, :actual_w] = tile
-#                 tile_depth = depth_model.infer_image(tile_padded, tile_size)
-#                 tile_depth = tile_depth[:actual_h, :actual_w]
-#             else:
-#                 tile_depth = depth_model.infer_image(tile, tile_size)
-#
-#             weight = np.ones((actual_h, actual_w), dtype=np.float32)
-#
-#             if overlap > 0:
-#                 if i > 0:
-#                     fade = np.linspace(0, 1, overlap)
-#                     weight[:overlap, :] *= fade[:, None]
-#                 if i < n_tiles_h - 1:
-#                     fade = np.linspace(1, 0, overlap)
-#                     weight[-overlap:, :] *= fade[:, None]
-#                 if j > 0:
-#                     fade = np.linspace(0, 1, overlap)
-#                     weight[:, :overlap] *= fade[None, :]
-#                 if j < n_tiles_w - 1:
-#                     fade = np.linspace(1, 0, overlap)
-#                     weight[:, -overlap:] *= fade[None, :]
-#
-#             full_depth_map[y_start:y_end, x_start:x_end] += tile_depth * weight
-#             weight_map[y_start:y_end, x_start:x_end] += weight
-#
-#             tile_counter += 1
-#             progress.progress(
-#                 tile_counter / total_tiles,
-#                 text=f"Generating foreground... {tile_counter}/{total_tiles} tiles"
-#             )
-#
-#     full_depth_map /= np.maximum(weight_map, 1e-8)
-#
-#     full_depth_map = cv2.resize(
-#         full_depth_map, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR
-#     )
-#
-#     foreground = extract_foreground(
-#         raw_image, full_depth_map,
-#         method="adaptive", threshold=13.0,
-#         percentile=55, smooth_kernel=7
-#     )
-#
-#     progress.empty()
-#
-#     return foreground
-
-
+    
 # ============================================================
 # YOLO BERRY DETECTION + ANNOTATED IMAGE
 # ============================================================
-
 def predict_berry_count(
     image_bgr,
     model,
@@ -535,11 +317,9 @@ def predict_berry_count(
         output_image
     )
 
-
 # ============================================================
 # DINOv3 GENOTYPE PREDICTION (runs on the original image, CPU)
 # ============================================================
-
 def predict_genotype(
     image_bgr,
     processor,
@@ -584,7 +364,6 @@ def predict_genotype(
 # ============================================================
 # ZOOMABLE 2x1 (VERTICAL) COMPARISON FIGURE  (plotly subplots)
 # ============================================================
-
 def _shrink_for_display(img_rgb, max_side=DISPLAY_MAX_SIDE):
 
     h, w = img_rgb.shape[:2]
@@ -599,7 +378,6 @@ def _shrink_for_display(img_rgb, max_side=DISPLAY_MAX_SIDE):
         (int(w * scale), int(h * scale)),
         interpolation=cv2.INTER_AREA
     )
-
 
 def build_zoom_figure(original_rgb, annotated_rgb):
     """
@@ -692,11 +470,9 @@ def build_zoom_figure(original_rgb, annotated_rgb):
 
     return fig
 
-
 # ============================================================
 # SIDEBAR
 # ============================================================
-
 with st.sidebar:
 
     st.divider()
@@ -714,11 +490,9 @@ with st.sidebar:
 
     st.write(f"Inference running on `{DEVICE}`")
 
-
 # ============================================================
 # IMAGE UPLOAD
 # ============================================================
-
 st.header("📷 Upload Blueberry Image")
 
 st.write(
@@ -732,11 +506,9 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
-
 # ============================================================
 # MAIN APPLICATION
 # ============================================================
-
 if uploaded_file is None:
 
     for _k in ("upload_id", "detection", "final"):
@@ -746,7 +518,6 @@ if uploaded_file is None:
         "Upload an original blueberry plant image "
         "to begin the analysis."
     )
-
 else:
 
     upload_id = (
@@ -899,7 +670,7 @@ else:
         with btn_col:
 
             estimate_button = st.button(
-                "Estimate Genotype & Yield",
+                "Estimate Genotype Yield Rank & Yield",
                 type="primary",
                 use_container_width=True
             )
