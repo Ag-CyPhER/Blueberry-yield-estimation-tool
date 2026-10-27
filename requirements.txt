@@ -13,3 +13,4 @@ huggingface_hub
 Pillow
 pytest-shutil
 gc-python-utils
+plotly
