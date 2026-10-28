@@ -818,13 +818,13 @@ else:
             st.caption(
                 "Scroll over an image to zoom in at the cursor - the view "
                 "returns to normal as soon as you stop scrolling. "
-                "Adjust the confidence threshold in the sidebar."
+                "Adjust the confidence threshold for the blueberry detection model in the sidebar."
             )
         else:
             st.caption(
-                "Scroll over an image to zoom in at the cursor, drag to "
-                "pan, double-click to reset. "
-                "Adjust the confidence threshold in the sidebar."
+                "Scroll over an image to zoom in at the cursor - the view "
+                "returns to normal as soon as you stop scrolling. "
+                "Adjust the confidence threshold for the blueberry detection model in the sidebar."
             )
 
         dh, dw = detection["disp_bgr"].shape[:2]
