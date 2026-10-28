@@ -665,9 +665,9 @@ with st.sidebar:
 
     idle_ms = st.slider(
         "Reset delay after last scroll (ms)",
-        min_value=150,
+        min_value=300,
         max_value=2000,
-        value=400,
+        value=800,
         step=50,
         disabled=not auto_reset
     )
