@@ -1137,13 +1137,13 @@ DISPLAY_MAX_SIDE = 1800
 CONF_FLOOR = 0.05
 
 YOLO_TILE = 640
-YOLO_BATCH = 8
+YOLO_BATCH = 6
 
 # The uploaded image is resized to this fraction of its size (same factor
 # for width and height, so the aspect ratio never changes) BEFORE detection.
 # Detection, the on-screen viewer, genotype and the ZIP all use this image.
 # Set to 1.0 to analyse at full resolution.
-RESIZE_SCALE = 0.75
+RESIZE_SCALE = 0.6
 
 # ============================================================
 # DEVICE (CPU only)
@@ -1899,11 +1899,11 @@ else:
         ah, aw = detection["image_bgr"].shape[:2]
         ow, oh = detection["orig_size"]
 
-        if (aw, ah) != (ow, oh):
-            st.caption(
-                f"Image resized to {RESIZE_SCALE:.0%} for faster processing: "
-                f"{ow}×{oh} → {aw}×{ah} px."
-            )
+        # if (aw, ah) != (ow, oh):
+        #     st.caption(
+        #         f"Image resized to {RESIZE_SCALE:.0%} for faster processing: "
+        #         f"{ow}×{oh} → {aw}×{ah} px."
+        #     )
 
         dh, dw = detection["disp_bgr"].shape[:2]
 
