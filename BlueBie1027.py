@@ -1416,8 +1416,8 @@ VIEWER_TEMPLATE = """
 """
 
 
-def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
-
+# def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
+def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, sync, idle_ms):
     viewer_h = int(min(720, max(380, 620 * disp_h / disp_w)))
 
     html = (
@@ -1427,7 +1427,7 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idl
         .replace("__CONF__", f"{conf:.2f}")
         .replace("__H__", str(viewer_h))
         .replace("__IDLE__", str(int(idle_ms)))
-        .replace("__AUTO__", "true" if auto_reset else "false")
+        # .replace("__AUTO__", "true" if auto_reset else "false")
         .replace("__SYNC__", "true" if sync else "false")
     )
 
@@ -1613,18 +1613,18 @@ else:
 
         st.subheader("🔍 Image Analysis")
 
-        if auto_reset:
-            st.caption(
-                "Scroll over an image to zoom in at the cursor - the view "
-                "returns to normal as soon as you stop scrolling. "
-                "Adjust the confidence threshold in the sidebar."
-            )
-        else:
-            st.caption(
-                "Scroll over an image to zoom in at the cursor, drag to "
-                "pan, double-click to reset. "
-                "Adjust the confidence threshold in the sidebar."
-            )
+        # if auto_reset:
+        #     st.caption(
+        #         "Scroll over an image to zoom in at the cursor - the view "
+        #         "returns to normal as soon as you stop scrolling. "
+        #         "Adjust the confidence threshold in the sidebar."
+        #     )
+        # else:
+        #     st.caption(
+        #         "Scroll over an image to zoom in at the cursor, drag to "
+        #         "pan, double-click to reset. "
+        #         "Adjust the confidence threshold in the sidebar."
+        #     )
 
         dh, dw = detection["disp_bgr"].shape[:2]
 
@@ -1633,7 +1633,7 @@ else:
             det_b64,
             dh, dw,
             conf,
-            auto_reset,
+            # auto_reset,
             sync_zoom,
             idle_ms
         )
