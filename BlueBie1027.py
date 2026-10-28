@@ -617,8 +617,8 @@ VIEWER_TEMPLATE = """
 """
 
 
-# def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
-def render_viewer(orig_b64, det_b64, disp_h, disp_w, auto_reset, conf, sync):
+def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
+# def render_viewer(orig_b64, det_b64, disp_h, disp_w, auto_reset, conf, sync):
     viewer_h = int(min(720, max(380, 620 * disp_h / disp_w)))
 
     html = (
@@ -627,7 +627,7 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, auto_reset, conf, sync):
         .replace("__DET__", det_b64)
         .replace("__CONF__", f"{conf:.2f}")
         .replace("__H__", str(viewer_h))
-        # .replace("__IDLE__", str(int(idle_ms)))
+        .replace("__IDLE__", str(int(idle_ms)))
         .replace("__AUTO__", "true" if auto_reset else "false")
         .replace("__SYNC__", "true" if sync else "false")
     )
@@ -663,14 +663,14 @@ with st.sidebar:
         value=True
     )
 
-    # idle_ms = st.slider(
-    #     "Reset delay after last scroll (ms)",
-    #     min_value=300,
-    #     max_value=2000,
-    #     value=800,
-    #     step=50,
-    #     disabled=not auto_reset
-    # )
+    idle_ms = st.slider(
+        "Reset delay after last scroll (ms)",
+        min_value=1000,
+        max_value=6000,
+        value=2500,
+        step=500,
+        disabled=not auto_reset
+    )
 
     sync_zoom = st.checkbox(
         "Zoom both images together",
@@ -835,8 +835,8 @@ else:
             dh, dw,
             conf,
             auto_reset,
-            sync_zoom
-            # idle_ms
+            sync_zoom,
+            idle_ms
         )
 
         # ----------------------------------------------------
