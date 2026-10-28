@@ -1457,19 +1457,19 @@ with st.sidebar:
 
     st.subheader("🔍 Zoom settings")
 
-    auto_reset = st.checkbox(
-        "Reset zoom when scrolling stops",
-        value=True
-    )
+    # auto_reset = st.checkbox(
+    #     "Reset zoom when scrolling stops",
+    #     value=True
+    # )
 
-    idle_ms = st.slider(
-        "Reset delay after last scroll (ms)",
-        min_value=150,
-        max_value=2000,
-        value=400,
-        step=50,
-        disabled=not auto_reset
-    )
+    # idle_ms = st.slider(
+    #     "Reset delay after last scroll (ms)",
+    #     min_value=150,
+    #     max_value=2000,
+    #     value=400,
+    #     step=50,
+    #     disabled=not auto_reset
+    # )
 
     sync_zoom = st.checkbox(
         "Zoom both images together",
