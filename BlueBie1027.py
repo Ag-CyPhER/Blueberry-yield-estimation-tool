@@ -90,7 +90,7 @@ YOLO_BATCH = 6
 # for width and height, so the aspect ratio never changes) BEFORE detection.
 # Detection, the on-screen viewer, genotype and the ZIP all use this image.
 # Set to 1.0 to analyse at full resolution.
-RESIZE_SCALE = 0.6
+RESIZE_SCALE = 0.5
 
 # ============================================================
 # DEVICE (CPU only)
@@ -98,7 +98,6 @@ RESIZE_SCALE = 0.6
 DEVICE = torch.device("cpu")
 
 torch.set_num_threads(max(1, os.cpu_count() or 1))
-
 # ============================================================
 # CUSTOM CSS
 # ============================================================
@@ -845,12 +844,6 @@ else:
 
         ah, aw = detection["image_bgr"].shape[:2]
         ow, oh = detection["orig_size"]
-
-        # if (aw, ah) != (ow, oh):
-        #     st.caption(
-        #         f"Image resized to {RESIZE_SCALE:.0%} for faster processing: "
-        #         f"{ow}×{oh} → {aw}×{ah} px."
-        #     )
 
         dh, dw = detection["disp_bgr"].shape[:2]
 
