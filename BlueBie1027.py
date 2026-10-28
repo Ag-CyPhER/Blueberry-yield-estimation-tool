@@ -617,8 +617,8 @@ VIEWER_TEMPLATE = """
 """
 
 
-def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
-# def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, sync):
+# def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
+def render_viewer(orig_b64, det_b64, disp_h, disp_w, auto_reset, conf, sync):
     viewer_h = int(min(720, max(380, 620 * disp_h / disp_w)))
 
     html = (
@@ -627,7 +627,7 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idl
         .replace("__DET__", det_b64)
         .replace("__CONF__", f"{conf:.2f}")
         .replace("__H__", str(viewer_h))
-        .replace("__IDLE__", str(int(idle_ms)))
+        # .replace("__IDLE__", str(int(idle_ms)))
         .replace("__AUTO__", "true" if auto_reset else "false")
         .replace("__SYNC__", "true" if sync else "false")
     )
@@ -663,14 +663,14 @@ with st.sidebar:
         value=True
     )
 
-    idle_ms = st.slider(
-        "Reset delay after last scroll (ms)",
-        min_value=300,
-        max_value=2000,
-        value=800,
-        step=50,
-        disabled=not auto_reset
-    )
+    # idle_ms = st.slider(
+    #     "Reset delay after last scroll (ms)",
+    #     min_value=300,
+    #     max_value=2000,
+    #     value=800,
+    #     step=50,
+    #     disabled=not auto_reset
+    # )
 
     sync_zoom = st.checkbox(
         "Zoom both images together",
@@ -814,18 +814,18 @@ else:
 
         st.subheader("🔍 Image Analysis")
 
-        # if auto_reset:
-        #     st.caption(
-        #         "Scroll over an image to zoom in at the cursor - the view "
-        #         "returns to normal as soon as you stop scrolling. "
-        #         "Adjust the confidence threshold in the sidebar."
-        #     )
-        # else:
-        #     st.caption(
-        #         "Scroll over an image to zoom in at the cursor, drag to "
-        #         "pan, double-click to reset. "
-        #         "Adjust the confidence threshold in the sidebar."
-        #     )
+        if auto_reset:
+            st.caption(
+                "Scroll over an image to zoom in at the cursor - the view "
+                "returns to normal as soon as you stop scrolling. "
+                "Adjust the confidence threshold in the sidebar."
+            )
+        else:
+            st.caption(
+                "Scroll over an image to zoom in at the cursor, drag to "
+                "pan, double-click to reset. "
+                "Adjust the confidence threshold in the sidebar."
+            )
 
         dh, dw = detection["disp_bgr"].shape[:2]
 
@@ -835,8 +835,8 @@ else:
             dh, dw,
             conf,
             auto_reset,
-            sync_zoom,
-            idle_ms
+            sync_zoom
+            # idle_ms
         )
 
         # ----------------------------------------------------
