@@ -1417,7 +1417,7 @@ VIEWER_TEMPLATE = """
 
 
 # def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
-def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, sync, idle_ms):
+def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, sync):
     viewer_h = int(min(720, max(380, 620 * disp_h / disp_w)))
 
     html = (
@@ -1426,7 +1426,7 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, sync, idle_ms):
         .replace("__DET__", det_b64)
         .replace("__CONF__", f"{conf:.2f}")
         .replace("__H__", str(viewer_h))
-        .replace("__IDLE__", str(int(idle_ms)))
+        # .replace("__IDLE__", str(int(idle_ms)))
         # .replace("__AUTO__", "true" if auto_reset else "false")
         .replace("__SYNC__", "true" if sync else "false")
     )
@@ -1634,8 +1634,8 @@ else:
             dh, dw,
             conf,
             # auto_reset,
-            sync_zoom,
-            idle_ms
+            sync_zoom
+            # idle_ms
         )
 
         # ----------------------------------------------------
