@@ -316,9 +316,10 @@
 
 # def draw_detections(img_bgr, boxes, labels, factor=1.0):
 #     """
-#     Draws boxes on a copy of img_bgr. `factor` rescales box coordinates
-#     (used when drawing on the smaller display image). Line width and
-#     font size scale with the image so they stay visible on big photos.
+#     Draws boxes only (no text labels - the viewer shows a colour legend)
+#     on a copy of img_bgr. `factor` rescales box coordinates (used when
+#     drawing on the smaller display image). Line width scales with the
+#     image so boxes stay visible on big photos.
 #     """
 
 #     out = img_bgr.copy()
@@ -327,7 +328,6 @@
 
 #     s = max(1.0, max(h, w) / 1500.0)
 #     thickness = max(1, int(round(2 * s)))
-#     font_scale = 0.5 * s
 
 #     for (x1, y1, x2, y2), lab in zip(boxes * factor, labels):
 
@@ -337,16 +337,6 @@
 #             out,
 #             (int(x1), int(y1)),
 #             (int(x2), int(y2)),
-#             color,
-#             thickness
-#         )
-
-#         cv2.putText(
-#             out,
-#             LABEL_NAMES[int(lab)],
-#             (int(x1), max(int(y1) - 6, 12)),
-#             cv2.FONT_HERSHEY_SIMPLEX,
-#             font_scale,
 #             color,
 #             thickness
 #         )
@@ -1059,6 +1049,8 @@
 #                     hide_index=True,
 #                     use_container_width=True
 #                 )
+
+
 import os
 import io
 import math
@@ -1146,6 +1138,12 @@ CONF_FLOOR = 0.05
 
 YOLO_TILE = 640
 YOLO_BATCH = 8
+
+# The uploaded image is resized to this fraction of its size (same factor
+# for width and height, so the aspect ratio never changes) BEFORE detection.
+# Detection, the on-screen viewer, genotype and the ZIP all use this image.
+# Set to 1.0 to analyse at full resolution.
+RESIZE_SCALE = 0.75
 
 # ============================================================
 # DEVICE (CPU only)
@@ -1483,7 +1481,7 @@ def to_b64_jpeg(img_bgr, quality=85):
 
 
 def build_zip(detection, boxes, labels, conf):
-    """ZIP containing the untouched original upload + full-res detection image."""
+    """ZIP containing the (resized) image and its detection image, same size."""
 
     annotated = draw_detections(
         detection["image_bgr"],
@@ -1498,6 +1496,12 @@ def build_zip(detection, boxes, labels, conf):
         [cv2.IMWRITE_JPEG_QUALITY, 95]
     )
 
+    ok_o, buf_o = cv2.imencode(
+        ".jpg",
+        detection["image_bgr"],
+        [cv2.IMWRITE_JPEG_QUALITY, 95]
+    )
+
     stem, ext = os.path.splitext(detection["name"])
 
     zbuf = io.BytesIO()
@@ -1505,7 +1509,7 @@ def build_zip(detection, boxes, labels, conf):
     # ZIP_STORED: JPEG/PNG data is already compressed, so this is fastest
     with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_STORED) as zf:
 
-        zf.writestr(f"{stem}_original{ext}", detection["orig_bytes"])
+        zf.writestr(f"{stem}_original.jpg", buf_o.tobytes())
         zf.writestr(f"{stem}_detected_conf{conf:.2f}.jpg", buf.tobytes())
 
     return zbuf.getvalue()
@@ -1807,6 +1811,19 @@ else:
             if original_bgr is None:
                 raise ValueError("Could not read uploaded image.")
 
+            # Resize to RESIZE_SCALE (aspect ratio preserved) before detection
+            orig_h, orig_w = original_bgr.shape[:2]
+
+            if RESIZE_SCALE != 1.0:
+                new_w = max(1, int(round(orig_w * RESIZE_SCALE)))
+                new_h = max(1, int(round(orig_h * RESIZE_SCALE)))
+
+                original_bgr = cv2.resize(
+                    original_bgr,
+                    (new_w, new_h),
+                    interpolation=cv2.INTER_AREA
+                )
+
             with st.spinner(
                 "Detecting immature and ripe blueberries "
                 "(CPU - this may take a moment)..."
@@ -1823,7 +1840,8 @@ else:
             st.session_state["detection"] = {
                 "name": uploaded_file.name,
                 "orig_bytes": orig_bytes,
-                "image_bgr": original_bgr,   # full-res, genotype + zip
+                "image_bgr": original_bgr,   # resized image used everywhere
+                "orig_size": (orig_w, orig_h),
                 "disp_bgr": disp_bgr,
                 "disp_factor": disp_factor,
                 "orig_b64": orig_b64,
@@ -1876,6 +1894,15 @@ else:
                 "Scroll over an image to zoom in at the cursor - the view "
                 "returns to normal as soon as you stop scrolling. "
                 "Adjust the confidence threshold for the blueberry detection model in the sidebar."
+            )
+
+        ah, aw = detection["image_bgr"].shape[:2]
+        ow, oh = detection["orig_size"]
+
+        if (aw, ah) != (ow, oh):
+            st.caption(
+                f"Image resized to {RESIZE_SCALE:.0%} for faster processing: "
+                f"{ow}×{oh} → {aw}×{ah} px."
             )
 
         dh, dw = detection["disp_bgr"].shape[:2]
@@ -2110,4 +2137,3 @@ else:
                     hide_index=True,
                     use_container_width=True
                 )
-
