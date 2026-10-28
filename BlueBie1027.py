@@ -773,7 +773,7 @@ else:
 
             with st.spinner(
                 "Detecting immature and ripe blueberries "
-                "(CPU - this may take a moment)..."
+                # "(CPU - this may take a moment)..."
             ):
 
                 raw = detect_raw(original_bgr, yolo_model, is_ov)
@@ -833,13 +833,13 @@ else:
         if auto_reset:
             st.caption(
                 "Adjust the confidence threshold for the blueberry detection model in the sidebar.\n"
-                "Scroll over an image to zoom in at the cursor - the view "
+                "\nScroll over an image to zoom in at the cursor - the view "
                 "returns to normal as soon as you stop scrolling. "
             )
         else:
             st.caption(
                 "Adjust the confidence threshold for the blueberry detection model in the sidebar.\n"
-                "Scroll over an image to zoom in at the cursor - the view "
+                "\nScroll over an image to zoom in at the cursor - the view "
                 "returns to normal as soon as you stop scrolling. "
             )
 
