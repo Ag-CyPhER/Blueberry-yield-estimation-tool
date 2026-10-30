@@ -49,7 +49,7 @@ CLASS_NAMES = {
 # Detection label ids used internally
 LABEL_IDS = {"green": 0, "ripe": 1}
 LABEL_NAMES = {0: "green", 1: "ripe"}
-LABEL_COLORS_BGR = {0: (0, 255, 0), 1: (0, 0, 255)}
+LABEL_COLORS_BGR = {0: (0, 255, 0), 1: (255, 0, 0)}
 
 # ============================================================
 # MODEL PATHS
