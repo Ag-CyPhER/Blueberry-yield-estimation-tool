@@ -501,7 +501,7 @@ VIEWER_TEMPLATE = """
   </div>
   <div class="legend">
     <span class="sw" style="border-color:#00e000"></span>Immature blueberries
-    <span class="sw" style="border-color:#0000FF"></span>Mature blueberries
+    <span class="sw" style="border-color:#EE82EE"></span>Mature blueberries
   </div>
 
 <script>
@@ -869,7 +869,7 @@ else:
             st.metric("🟢 Immature Blueberries", n_green)
 
         with col2:
-            st.metric("🔵 Mature Blueberries", n_ripe)
+            st.metric("🟣 Mature Blueberries", n_ripe)
 
         with col3:
             st.metric("🫐 Total Blueberries", n_total)
