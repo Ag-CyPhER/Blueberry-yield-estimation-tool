@@ -771,7 +771,7 @@ else:
                 )
 
             with st.spinner(
-                "Detecting immature and ripe blueberries "
+                "Detecting immature and mature blueberries "
                 # "(CPU - this may take a moment)..."
             ):
 
@@ -869,7 +869,7 @@ else:
             st.metric("🟢 Immature Blueberries", n_green)
 
         with col2:
-            st.metric("🔴 Ripe Blueberries", n_ripe)
+            st.metric("🔵 Mature Blueberries", n_ripe)
 
         with col3:
             st.metric("🫐 Total Blueberries", n_total)
@@ -1041,7 +1041,7 @@ else:
                 )
 
                 st.caption(
-                    f"Calculated from {n_ripe} ripe blueberries at a "
+                    f"Calculated from {n_ripe} mature blueberries at a "
                     f"confidence threshold of {conf:.2f}."
                 )
 
@@ -1054,7 +1054,7 @@ else:
                         "Predicted Genotype",
                         "Avg. berry wt",
                         "Confidence threshold",
-                        "DL Ripe Blueberry Count",
+                        "DL Mature Blueberry Count",
                         "Immature Blueberry Count",
                         "Total Blueberry Count",
                         "Yield Potential Estimation",
