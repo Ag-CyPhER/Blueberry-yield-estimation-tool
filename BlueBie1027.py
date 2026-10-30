@@ -501,7 +501,7 @@ VIEWER_TEMPLATE = """
   </div>
   <div class="legend">
     <span class="sw" style="border-color:#00e000"></span>Immature blueberries
-    <span class="sw" style="border-color:#ff0000"></span>Ripe blueberries
+    <span class="sw" style="border-color:#0000FF"></span>Mature blueberries
   </div>
 
 <script>
