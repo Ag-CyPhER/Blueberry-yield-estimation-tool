@@ -760,7 +760,7 @@ def selection_section(src_pil, upload_id, file_name):
                 widget_img,
                 realtime_update=True,
                 # box_color="#1E90FF",
-                box_color="FF0000",
+                box_color="F00",
                 aspect_ratio=None,          # free width / height
                 return_type="box",
                 key=f"cropper_{upload_id}"
