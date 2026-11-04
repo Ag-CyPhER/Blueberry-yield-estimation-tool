@@ -759,7 +759,8 @@ def selection_section(src_pil, upload_id, file_name):
             box = st_cropper(
                 widget_img,
                 realtime_update=True,
-                box_color="#1E90FF",
+                # box_color="#1E90FF",
+                box_color="FF0000",
                 aspect_ratio=None,          # free width / height
                 return_type="box",
                 key=f"cropper_{upload_id}"
