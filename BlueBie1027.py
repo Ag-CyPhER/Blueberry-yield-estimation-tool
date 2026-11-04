@@ -718,12 +718,12 @@ def selection_section(src_pil, upload_id, file_name):
 
     st.subheader("✂️ Prepare Image")
 
-    st.warning(
-        "For ideal performance and detection of berries based on maturity, "
-        "please remove the background so the image contains a **single "
-        "plant**. Crop out any other plants or background from the image "
-        "before starting the analysis to count the berries."
-    )
+    # st.warning(
+    #     "For ideal performance and detection of berries based on maturity, "
+    #     "please remove the background so the image contains a **single "
+    #     "plant**. Crop out any other plants or background from the image "
+    #     "before starting the analysis to count the berries."
+    # )
 
     choice = st.radio(
         "How would you like to analyse the image?",
