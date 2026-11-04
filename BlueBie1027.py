@@ -11,7 +11,8 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from PIL import Image
+from PIL import Image, ImageOps
+from streamlit_cropper import st_cropper      # pip install streamlit-cropper
 from transformers import AutoImageProcessor, AutoModel
 from ultralytics import YOLO
 
@@ -86,11 +87,14 @@ CONF_FLOOR = 0.05
 YOLO_TILE = 640
 YOLO_BATCH = 6
 
-# The uploaded image is resized to this fraction of its size (same factor
-# for width and height, so the aspect ratio never changes) BEFORE detection.
-# Detection, the on-screen viewer, genotype and the ZIP all use this image.
-# Set to 1.0 to analyse at full resolution.
+# The image (cropped or not) is resized to this fraction of its size (same
+# factor for width and height, so the aspect ratio never changes) BEFORE
+# detection. Set to 1.0 to analyse at full resolution.
 RESIZE_SCALE = 0.5
+
+# Longest side (px) of the image shown inside the crop tool (display only;
+# the crop box is mapped back to the full-resolution image).
+CROP_DISPLAY_MAX_SIDE = 900
 
 # ============================================================
 # DEVICE (CPU only)
@@ -205,7 +209,7 @@ def load_yield_model():
 # ============================================================
 def detect_raw(image_bgr, model, is_openvino, tile_size=YOLO_TILE):
     """
-    Tiles the ORIGINAL image, runs YOLO on CPU once at CONF_FLOOR and
+    Tiles the image, runs YOLO on CPU once at CONF_FLOOR and
     returns every detection in full-image coordinates:
 
         {"boxes": (N,4) float32, "scores": (N,), "labels": (N,) int}
@@ -268,7 +272,7 @@ def detect_raw(image_bgr, model, is_openvino, tile_size=YOLO_TILE):
             }
 
             xyxy = result.boxes.xyxy.cpu().numpy().astype(np.float32)
-            conf = result.boxes.conf.cpu().numpy().astype(np.float32)
+            conf_ = result.boxes.conf.cpu().numpy().astype(np.float32)
             cls = result.boxes.cls.cpu().numpy().astype(int)
 
             labels = np.array([lab_map.get(int(c), -1) for c in cls])
@@ -286,7 +290,7 @@ def detect_raw(image_bgr, model, is_openvino, tile_size=YOLO_TILE):
             xyxy[:, [1, 3]] = np.clip(xyxy[:, [1, 3]], 0, h - 1)
 
             all_boxes.append(xyxy)
-            all_scores.append(conf[keep])
+            all_scores.append(conf_[keep])
             all_labels.append(labels[keep])
 
         progress.progress(
@@ -350,7 +354,7 @@ def draw_detections(img_bgr, boxes, labels, factor=1.0):
 
 
 # ============================================================
-# DINOv3 GENOTYPE PREDICTION (runs on the original image, CPU)
+# DINOv3 GENOTYPE PREDICTION (runs on the analysed image, CPU)
 # ============================================================
 def predict_genotype(
     image_bgr,
@@ -427,7 +431,7 @@ def to_b64_jpeg(img_bgr, quality=85):
 
 
 def build_zip(detection, boxes, labels, conf):
-    """ZIP containing the (resized) image and its detection image, same size."""
+    """ZIP containing the analysed image and its detection image, same size."""
 
     annotated = draw_detections(
         detection["image_bgr"],
@@ -461,8 +465,33 @@ def build_zip(detection, boxes, labels, conf):
     return zbuf.getvalue()
 
 
+def pil_to_bgr(pil_img):
+
+    return cv2.cvtColor(np.array(pil_img.convert("RGB")), cv2.COLOR_RGB2BGR)
+
+
+def resize_for_analysis(image_bgr):
+    """Apply RESIZE_SCALE (aspect ratio preserved)."""
+
+    if RESIZE_SCALE == 1.0:
+        return image_bgr
+
+    h, w = image_bgr.shape[:2]
+
+    new_w = max(1, int(round(w * RESIZE_SCALE)))
+    new_h = max(1, int(round(h * RESIZE_SCALE)))
+
+    return cv2.resize(
+        image_bgr,
+        (new_w, new_h),
+        interpolation=cv2.INTER_AREA
+    )
+
+
 # ============================================================
-# SCROLL-TO-ZOOM SIDE-BY-SIDE VIEWER (HTML + JS)
+# SLIDER-ZOOM SIDE-BY-SIDE VIEWER (HTML + JS)
+# The zoom slider lives INSIDE the viewer (below the images), so moving it
+# is instant and never reruns the Streamlit app.
 # ============================================================
 VIEWER_TEMPLATE = """
 <!DOCTYPE html>
@@ -478,7 +507,7 @@ VIEWER_TEMPLATE = """
   .title { font-weight: 700; font-size: 18px; margin: 2px 0 8px; }
   .clip  { overflow: hidden; margin: 0 auto; line-height: 0;
            box-shadow: 0 0 0 1px #c8c8c8; border-radius: 4px;
-           cursor: zoom-in; touch-action: none; background: #000; }
+           touch-action: none; background: #000; cursor: default; }
   .pan   { transform-origin: 0 0; will-change: transform; }
   .pan img { display: block; width: 100%; height: 100%;
              user-select: none; -webkit-user-drag: none; }
@@ -486,6 +515,10 @@ VIEWER_TEMPLATE = """
   .legend span.sw { display: inline-block; width: 14px; height: 14px;
                     border: 3px solid; box-sizing: border-box;
                     vertical-align: -2px; margin: 0 6px 0 16px; }
+  .zoombar { margin: 16px auto 0; max-width: 620px; text-align: center;
+             font-size: 15px; }
+  .zoombar input[type=range] { width: 100%; margin: 8px 0 2px; }
+  .zoombar .val { font-weight: 700; }
 </style>
 </head>
 <body>
@@ -504,17 +537,31 @@ VIEWER_TEMPLATE = """
     <span class="sw" style="border-color:#9400D3"></span>Mature blueberries
   </div>
 
+  <div class="zoombar">
+    <div>Adjust slide bar to zoom in and out in an image</div>
+    <input id="zoom" type="range" min="1" max="10" step="0.05" value="1">
+    <div>Zoom: <span class="val" id="zval">1.0x</span>
+      &nbsp;(drag an image to move around when zoomed in)</div>
+  </div>
+
 <script>
 (function () {
-  const H = __H__, IDLE = __IDLE__, AUTO = __AUTO__, SYNC = __SYNC__, MAXZ = 10;
+  const H = __H__, MAXZ = 10;
 
   const panels = Array.from(document.querySelectorAll('.panel')).map(el => ({
     col: el,
     clip: el.querySelector('.clip'),
     pan: el.querySelector('.pan'),
     img: el.querySelector('img'),
-    s: 1, tx: 0, ty: 0, cw: 1, ch: 1
+    cw: 1, ch: 1
   }));
+
+  // shared view state (both images always zoom/pan together).
+  // tx, ty are fractions of the displayed image width/height.
+  let s = 1, tx = 0, ty = 0;
+
+  const slider = document.getElementById('zoom');
+  const zval = document.getElementById('zval');
 
   function layout() {
     panels.forEach(p => {
@@ -527,89 +574,68 @@ VIEWER_TEMPLATE = """
       p.clip.style.width = p.cw + 'px';
       p.clip.style.height = p.ch + 'px';
     });
+    apply();
   }
 
-  function apply(p, animate) {
-    p.pan.style.transition = animate ? 'transform .25s ease-out' : 'none';
-    p.pan.style.transform =
-      'translate(' + p.tx + 'px,' + p.ty + 'px) scale(' + p.s + ')';
-    p.clip.style.cursor = p.s > 1 ? 'grab' : 'zoom-in';
+  function clampView() {
+    tx = Math.min(0, Math.max(1 - s, tx));
+    ty = Math.min(0, Math.max(1 - s, ty));
   }
 
-  function clampP(p) {
-    p.tx = Math.min(0, Math.max(p.cw * (1 - p.s), p.tx));
-    p.ty = Math.min(0, Math.max(p.ch * (1 - p.s), p.ty));
+  function apply() {
+    clampView();
+    panels.forEach(p => {
+      p.pan.style.transform =
+        'translate(' + (tx * p.cw) + 'px,' + (ty * p.ch) + 'px) scale(' + s + ')';
+      p.clip.style.cursor = s > 1 ? 'grab' : 'default';
+    });
+    zval.textContent = s.toFixed(1) + 'x';
   }
 
-  function targets(p) { return SYNC ? panels : [p]; }
+  // slider: zoom around the centre of the current view
+  slider.addEventListener('input', () => {
+    const ns = Math.min(MAXZ, Math.max(1, parseFloat(slider.value)));
+    const cx = (0.5 - tx) / s, cy = (0.5 - ty) / s;
+    tx = 0.5 - cx * ns;
+    ty = 0.5 - cy * ns;
+    s = ns;
+    apply();
+  });
 
-  function resetAll(animate) {
-    panels.forEach(p => { p.s = 1; p.tx = 0; p.ty = 0; apply(p, animate); });
-  }
-
-  let timer = null;
+  // drag to pan (mouse / touch / pen)
   let drag = null;
 
   panels.forEach(p => {
-
-    // ---- scroll wheel: zoom at the cursor ----
-    p.clip.addEventListener('wheel', e => {
-      e.preventDefault();
-      const r = p.clip.getBoundingClientRect();
-      const fx = (e.clientX - r.left) / p.cw;
-      const fy = (e.clientY - r.top) / p.ch;
-      const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-      const factor = Math.exp(-Math.max(-300, Math.min(300, dy)) * 0.0025);
-
-      targets(p).forEach(t => {
-        const px = fx * t.cw, py = fy * t.ch;
-        const ns = Math.min(MAXZ, Math.max(1, t.s * factor));
-        const k = ns / t.s;
-        t.tx = px - (px - t.tx) * k;
-        t.ty = py - (py - t.ty) * k;
-        t.s = ns;
-        clampP(t);
-        apply(t, false);
-      });
-
-      // scrolling stopped -> go back to the original view
-      clearTimeout(timer);
-      if (AUTO) timer = setTimeout(() => resetAll(true), IDLE);
-    }, { passive: false });
-
-    // ---- drag to pan (useful when auto-reset is off) ----
-    p.clip.addEventListener('mousedown', e => {
-      if (p.s <= 1) return;
+    p.clip.addEventListener('pointerdown', e => {
+      if (s <= 1) return;
       drag = { x: e.clientX, y: e.clientY, p: p };
-      clearTimeout(timer);
+      p.clip.setPointerCapture(e.pointerId);
       p.clip.style.cursor = 'grabbing';
       e.preventDefault();
     });
 
-    p.clip.addEventListener('dblclick', () => resetAll(true));
-  });
-
-  window.addEventListener('mousemove', e => {
-    if (!drag) return;
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    drag.x = e.clientX; drag.y = e.clientY;
-    targets(drag.p).forEach(t => {
-      t.tx += dx; t.ty += dy;
-      clampP(t);
-      apply(t, false);
+    p.clip.addEventListener('pointermove', e => {
+      if (!drag || drag.p !== p) return;
+      tx += (e.clientX - drag.x) / p.cw;
+      ty += (e.clientY - drag.y) / p.ch;
+      drag.x = e.clientX; drag.y = e.clientY;
+      apply();
     });
-  });
 
-  window.addEventListener('mouseup', () => {
-    if (drag) { drag.p.clip.style.cursor = 'grab'; }
-    drag = null;
-  });
+    const end = () => { drag = null; apply(); };
+    p.clip.addEventListener('pointerup', end);
+    p.clip.addEventListener('pointercancel', end);
 
-  panels.forEach(p => {
+    // double click resets the view
+    p.clip.addEventListener('dblclick', () => {
+      s = 1; tx = 0; ty = 0; slider.value = 1; apply();
+    });
+
     if (p.img.complete) layout();
     else p.img.addEventListener('load', layout);
   });
-  window.addEventListener('resize', () => { layout(); resetAll(false); });
+
+  window.addEventListener('resize', layout);
   layout();
 })();
 </script>
@@ -618,8 +644,8 @@ VIEWER_TEMPLATE = """
 """
 
 
-def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idle_ms):
-# def render_viewer(orig_b64, det_b64, disp_h, disp_w, auto_reset, conf, sync):
+def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf):
+
     viewer_h = int(min(720, max(380, 620 * disp_h / disp_w)))
 
     html = (
@@ -628,12 +654,9 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf, auto_reset, sync, idl
         .replace("__DET__", det_b64)
         .replace("__CONF__", f"{conf:.2f}")
         .replace("__H__", str(viewer_h))
-        .replace("__IDLE__", str(int(idle_ms)))
-        .replace("__AUTO__", "true" if auto_reset else "false")
-        .replace("__SYNC__", "true" if sync else "false")
     )
 
-    components.html(html, height=viewer_h + 110, scrolling=False)
+    components.html(html, height=viewer_h + 190, scrolling=False)
 
 
 # ============================================================
@@ -657,27 +680,6 @@ with st.sidebar:
         )
     )
 
-    st.subheader("🔍 Zoom settings")
-
-    auto_reset = st.checkbox(
-        "Reset zoom when scrolling stops",
-        value=True
-    )
-
-    idle_ms = st.slider(
-        "Reset delay after last scroll (ms)",
-        min_value=1000,
-        max_value=6000,
-        value=2500,
-        step=500,
-        disabled=not auto_reset
-    )
-
-    sync_zoom = st.checkbox(
-        "Zoom both images together",
-        value=True
-    )
-
     st.divider()
 
     st.write("**Blueberry detection based on maturity:**")
@@ -693,6 +695,123 @@ with st.sidebar:
 
     st.write(f"Inference running on `{DEVICE}`")
 
+
+# ============================================================
+# CROP / USE-AS-IS SELECTION
+# Runs as a fragment so dragging the crop box only reruns this block,
+# not the whole app. Clicking a "Start analysis" button triggers a full rerun.
+# ============================================================
+def _start_analysis(image_bgr, name):
+
+    st.session_state["analysis_id"] = st.session_state.get("analysis_id", 0) + 1
+
+    for _k in ("detection", "final", "zip"):
+        st.session_state.pop(_k, None)
+
+    st.session_state["pending"] = {
+        "image_bgr": image_bgr,
+        "name": name,
+    }
+
+    st.rerun()   # full app rerun (scope="app")
+
+
+@st.fragment
+def selection_section(src_pil, upload_id, file_name):
+
+    st.subheader("✂️ Prepare Image")
+
+    st.warning(
+        "For ideal performance and detection of berries based on maturity, "
+        "please remove the background so the image contains a **single "
+        "plant**. Crop out any other plants or background from the image "
+        "before starting the analysis to count the berries."
+    )
+
+    choice = st.radio(
+        "How would you like to analyse the image?",
+        ["✂️ Crop the image (recommended)", "🖼️ Use the image without cropping"],
+        key=f"choice_{upload_id}",
+        horizontal=True
+    )
+
+    if choice.startswith("✂️"):
+
+        st.write(
+            "Drag the corners / edges of the box to adjust its width and "
+            "height so that it includes only a single plant."
+        )
+
+        # Smaller copy for the widget (fast); the box is mapped back to the
+        # full-resolution image below.
+        w0, h0 = src_pil.size
+        f = min(1.0, CROP_DISPLAY_MAX_SIDE / max(w0, h0))
+
+        if f < 1.0:
+            widget_img = src_pil.resize(
+                (int(w0 * f), int(h0 * f)),
+                Image.LANCZOS
+            )
+        else:
+            widget_img = src_pil
+
+        crop_col, prev_col = st.columns([3, 1])
+
+        with crop_col:
+
+            box = st_cropper(
+                widget_img,
+                realtime_update=True,
+                box_color="#1E90FF",
+                aspect_ratio=None,          # free width / height
+                return_type="box",
+                key=f"cropper_{upload_id}"
+            )
+
+        # box = {"left","top","width","height"} in widget_img pixels
+        left = int(round(box["left"] / f))
+        top = int(round(box["top"] / f))
+        right = int(round((box["left"] + box["width"]) / f))
+        bottom = int(round((box["top"] + box["height"]) / f))
+
+        left, top = max(0, left), max(0, top)
+        right, bottom = min(w0, right), min(h0, bottom)
+
+        cropped = src_pil.crop((left, top, right, bottom))
+
+        with prev_col:
+
+            st.write("**Crop preview**")
+            st.image(cropped, use_container_width=True)
+            st.caption(f"{cropped.size[0]} × {cropped.size[1]} px")
+
+        if st.button(
+            "✅ Use cropped image & start analysis",
+            type="primary",
+            key=f"go_crop_{upload_id}"
+        ):
+
+            if cropped.size[0] < 32 or cropped.size[1] < 32:
+                st.error("The crop area is too small. Please enlarge the box.")
+            else:
+                _start_analysis(pil_to_bgr(cropped), file_name)
+
+    else:
+
+        st.image(
+            src_pil,
+            caption="Image that will be analysed (no cropping)",
+            width=450
+        )
+
+        if st.button(
+            "▶️ Use full image & start analysis",
+            type="primary",
+            key=f"go_full_{upload_id}"
+        ):
+            _start_analysis(pil_to_bgr(src_pil), file_name)
+
+
 # ============================================================
 # IMAGE UPLOAD
 # ============================================================
@@ -701,7 +820,7 @@ st.header("📷 Upload Blueberry Image")
 st.write(
     "Recommendation: Please upload an image of a single, cropped "
     "blueberry plant for a reliable blueberry detection count and "
-    "yield estimation!!"
+    "yield estimation!! You can crop the image after uploading it."
 )
 
 uploaded_file = st.file_uploader(
@@ -714,7 +833,7 @@ uploaded_file = st.file_uploader(
 # ============================================================
 if uploaded_file is None:
 
-    for _k in ("upload_id", "detection", "final", "zip"):
+    for _k in ("upload_id", "src_pil", "detection", "final", "zip", "pending"):
         st.session_state.pop(_k, None)
 
     st.info(
@@ -729,17 +848,45 @@ else:
         or f"{uploaded_file.name}-{uploaded_file.size}"
     )
 
-    # --------------------------------------------------------
-    # STAGE 1 (automatic on upload, runs ONCE per image):
-    # YOLO detection at the confidence floor -> stored raw detections
-    # --------------------------------------------------------
-
+    # New upload -> reset everything and decode the image once
     if st.session_state.get("upload_id") != upload_id:
 
         st.session_state["upload_id"] = upload_id
 
-        for _k in ("detection", "final", "zip"):
+        for _k in ("detection", "final", "zip", "pending"):
             st.session_state.pop(_k, None)
+
+        try:
+            pil = Image.open(io.BytesIO(uploaded_file.getvalue()))
+            pil = ImageOps.exif_transpose(pil).convert("RGB")
+            st.session_state["src_pil"] = pil
+        except Exception as e:
+            st.session_state.pop("src_pil", None)
+            st.error("Could not read uploaded image.")
+            st.exception(e)
+
+    src_pil = st.session_state.get("src_pil")
+
+    if src_pil is not None:
+
+        st.info(
+            "For ideal performance and detection of berries based on "
+            "maturity, please remove the background to get counts for a "
+            "**single plant** (crop out other plants or background) before "
+            "starting the analysis. Or choose to use the image without "
+            "cropping."
+        )
+
+        selection_section(src_pil, upload_id, uploaded_file.name)
+
+    # --------------------------------------------------------
+    # STAGE 1 (runs ONCE per "Start analysis" click):
+    # YOLO detection at the confidence floor -> stored raw detections
+    # --------------------------------------------------------
+
+    pending = st.session_state.pop("pending", None)
+
+    if pending is not None:
 
         try:
 
@@ -747,32 +894,10 @@ else:
 
                 yolo_model, is_ov = load_yolo_model()
 
-            orig_bytes = uploaded_file.getvalue()
-
-            original_bgr = cv2.imdecode(
-                np.frombuffer(orig_bytes, dtype=np.uint8),
-                cv2.IMREAD_COLOR
-            )
-
-            if original_bgr is None:
-                raise ValueError("Could not read uploaded image.")
-
-            # Resize to RESIZE_SCALE (aspect ratio preserved) before detection
-            orig_h, orig_w = original_bgr.shape[:2]
-
-            if RESIZE_SCALE != 1.0:
-                new_w = max(1, int(round(orig_w * RESIZE_SCALE)))
-                new_h = max(1, int(round(orig_h * RESIZE_SCALE)))
-
-                original_bgr = cv2.resize(
-                    original_bgr,
-                    (new_w, new_h),
-                    interpolation=cv2.INTER_AREA
-                )
+            original_bgr = resize_for_analysis(pending["image_bgr"])
 
             with st.spinner(
                 "Detecting immature and mature blueberries "
-                # "(CPU - this may take a moment)..."
             ):
 
                 raw = detect_raw(original_bgr, yolo_model, is_ov)
@@ -784,10 +909,8 @@ else:
                 orig_b64 = to_b64_jpeg(disp_bgr)
 
             st.session_state["detection"] = {
-                "name": uploaded_file.name,
-                "orig_bytes": orig_bytes,
-                "image_bgr": original_bgr,   # resized image used everywhere
-                "orig_size": (orig_w, orig_h),
+                "name": pending["name"],
+                "image_bgr": original_bgr,   # image used everywhere
                 "disp_bgr": disp_bgr,
                 "disp_factor": disp_factor,
                 "orig_b64": orig_b64,
@@ -803,6 +926,8 @@ else:
     detection = st.session_state.get("detection")
 
     if detection is not None:
+
+        st.divider()
 
         # ----------------------------------------------------
         # Apply the confidence slider (instant filter + redraw)
@@ -829,21 +954,11 @@ else:
 
         st.subheader("🔍 Image Analysis")
 
-        if auto_reset:
-            st.caption(
-                "Adjust the confidence threshold for the blueberry detection model in the sidebar.\n"
-                "\nScroll over an image to zoom in at the cursor - the view "
-                "returns to normal as soon as you stop scrolling. "
-            )
-        else:
-            st.caption(
-                "Adjust the confidence threshold for the blueberry detection model in the sidebar.\n"
-                "\nScroll over an image to zoom in at the cursor - the view "
-                "returns to normal as soon as you stop scrolling. "
-            )
-
-        ah, aw = detection["image_bgr"].shape[:2]
-        ow, oh = detection["orig_size"]
+        st.caption(
+            "Adjust the confidence threshold for the blueberry detection "
+            "model in the sidebar. Use the slide bar below the images to "
+            "zoom in and out."
+        )
 
         dh, dw = detection["disp_bgr"].shape[:2]
 
@@ -851,10 +966,7 @@ else:
             detection["orig_b64"],
             det_b64,
             dh, dw,
-            conf,
-            auto_reset,
-            sync_zoom,
-            idle_ms
+            conf
         )
 
         # ----------------------------------------------------
@@ -875,10 +987,13 @@ else:
             st.metric("🫐 Total Blueberries", n_total)
 
         # ----------------------------------------------------
-        # Download ZIP (original + detection image)
+        # Download ZIP (analysed image + detection image)
         # ----------------------------------------------------
 
-        zip_key = (upload_id, round(float(conf), 2))
+        zip_key = (
+            st.session_state.get("analysis_id", 0),
+            round(float(conf), 2)
+        )
 
         cached_zip = st.session_state.get("zip")
 
