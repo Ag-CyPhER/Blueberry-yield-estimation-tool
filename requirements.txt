@@ -17,3 +17,4 @@ plotly
 zipfile36
 pybase64
 python-math
+streamlit-cropper
