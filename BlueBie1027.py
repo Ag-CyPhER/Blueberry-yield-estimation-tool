@@ -663,6 +663,20 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf):
 # SIDEBAR
 # ============================================================
 with st.sidebar:
+    st.divider()
+
+    st.write("**Blueberry detection based on maturity:**")
+    st.write("YOLO11l")
+
+    st.write("**Vision Foundation model for Yield Potential Estimation:**")
+    st.write("DINOv3 ViT-B/16")
+
+    st.write("**Yield Estimation model:**")
+    st.write("ElasticNet Regressor")
+
+    st.divider()
+
+    st.write(f"Inference running on `{DEVICE}`")
 
     st.subheader("🎚️ Detection settings")
 
@@ -679,23 +693,6 @@ with st.sidebar:
             "is instant - the model is not re-run."
         )
     )
-
-    st.divider()
-
-    st.write("**Blueberry detection based on maturity:**")
-    st.write("YOLO11l")
-
-    st.write("**Vision Foundation model for Yield Potential Estimation:**")
-    st.write("DINOv3 ViT-B/16")
-
-    st.write("**Yield Estimation model:**")
-    st.write("ElasticNet Regressor")
-
-    st.divider()
-
-    st.write(f"Inference running on `{DEVICE}`")
-
-
 # ============================================================
 # CROP / USE-AS-IS SELECTION
 # Runs as a fragment so dragging the crop box only reruns this block,
