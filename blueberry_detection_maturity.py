@@ -49,7 +49,7 @@ YOLO_BATCH = 6
 # The image is resized to this fraction of its size (same factor for width
 # and height, so the aspect ratio never changes) BEFORE detection.
 # Set to 1.0 to analyse at full resolution.
-RESIZE_SCALE = 0.5
+RESIZE_SCALE = 0.6
 
 # ============================================================
 # DEVICE (CPU only)
