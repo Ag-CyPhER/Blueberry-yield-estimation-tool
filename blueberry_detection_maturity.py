@@ -535,7 +535,7 @@ def render_viewer(orig_b64, det_b64, disp_h, disp_w, conf):
 with st.sidebar:
     st.divider()
 
-    st.write("**Blueberry detection based on maturity:**")
+    st.write("**Deep Learning model trained to detect Blueberries based on maturity:**")
     st.write("YOLO11l")
 
     st.divider()
@@ -545,7 +545,7 @@ with st.sidebar:
     st.subheader("🎚️ Detection settings")
 
     conf = st.slider(
-        "Detection confidence threshold",
+        "Adjust detection confidence threshold",
         min_value=CONF_FLOOR,
         max_value=0.95,
         value=0.40,
