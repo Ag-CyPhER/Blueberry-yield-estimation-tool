@@ -21,7 +21,7 @@ st.set_page_config(
 # Detection label ids used internally
 LABEL_IDS = {"green": 0, "ripe": 1}
 LABEL_NAMES = {0: "green", 1: "ripe"}
-LABEL_COLORS_BGR = {0: (0, 255, 0), 1: (211, 0, 148)}
+LABEL_COLORS_BGR = {0: (0, 255, 0), 1: (0, 0, 255)}  # BGR: green, red
 
 # ============================================================
 # MODEL PATHS
@@ -404,7 +404,7 @@ VIEWER_TEMPLATE = """
   </div>
   <div class="legend">
     <span class="sw" style="border-color:#00e000"></span>Immature blueberries
-    <span class="sw" style="border-color:#9400D3"></span>Mature blueberries
+    <span class="sw" style="border-color:#ff0000"></span>Mature blueberries
   </div>
 
   <div class="zoombar">
@@ -721,7 +721,7 @@ else:
             st.metric("🟢 Immature Blueberries", n_green)
 
         with col2:
-            st.metric("🟣 Mature Blueberries", n_ripe)
+            st.metric("🔴 Mature Blueberries", n_ripe)
 
         with col3:
             st.metric("🫐 Total Blueberries", n_total)
