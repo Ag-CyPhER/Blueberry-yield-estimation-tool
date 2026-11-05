@@ -579,7 +579,7 @@ uploaded_file = st.file_uploader(
 # ============================================================
 if uploaded_file is None:
 
-    for _k in ("upload_id", "src_pil", "detection", "zip"):
+    for _k in ("upload_id", "src_pil", "detection", "zip", "analyzed_id"):
         st.session_state.pop(_k, None)
 
     st.info(
@@ -613,30 +613,14 @@ else:
 
     src_pil = st.session_state.get("src_pil")
 
-    start_analysis = False
-
-    if src_pil is not None:
-
-        st.subheader("🖼️ Uploaded Image")
-
-        st.image(
-            src_pil,
-            caption="Image that will be analysed",
-            width=450
-        )
-
-        start_analysis = st.button(
-            "▶️ Start analysis",
-            type="primary",
-            key=f"go_full_{upload_id}"
-        )
-
     # --------------------------------------------------------
-    # STAGE 1 (runs ONCE per "Start analysis" click):
+    # STAGE 1 (runs ONCE per uploaded image, automatically):
     # YOLO detection at the confidence floor -> stored raw detections
     # --------------------------------------------------------
 
-    if start_analysis and src_pil is not None:
+    if src_pil is not None and st.session_state.get("analyzed_id") != upload_id:
+
+        st.session_state["analyzed_id"] = upload_id
 
         st.session_state["analysis_id"] = (
             st.session_state.get("analysis_id", 0) + 1
