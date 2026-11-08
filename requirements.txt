@@ -18,3 +18,4 @@ zipfile36
 pybase64
 python-math
 streamlit-cropper
+Authlib>=1.3.2
