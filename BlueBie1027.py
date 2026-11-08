@@ -179,7 +179,31 @@ def load_yolo_model():
 
     return YOLO(YOLO_MODEL_PATH), False
 
+ADMIN_EMAIL = "pzs0098@auburn.edu"
 
+def get_allowed_users():
+    return {e.strip().lower() for e in st.secrets.get("allowed_users", [])}
+
+if not st.user.is_logged_in:
+    st.title("🫐 Blueberry Detection and Maturity Assessment")
+    st.info("Please sign in to continue.")
+    st.button("Sign in with Google", on_click=st.login)
+    st.stop()
+
+user_email = (st.user.get("email") or "").lower()
+
+if user_email not in get_allowed_users():
+    st.error(
+        f"Access denied for **{user_email}**. "
+        f"Please email {ADMIN_EMAIL} to request access."
+    )
+    st.button("Sign out", on_click=st.logout)
+    st.stop()
+
+with st.sidebar:
+    st.write(f"Signed in as **{user_email}**")
+    st.button("Sign out", on_click=st.logout)
+    
 @st.cache_resource
 def load_dino_model():
 
